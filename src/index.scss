@@ -1,0 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Abel&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Variables */
+body {
+  @apply font-sans text-primaryGray;
+}
+
+label {
+  @apply text-labelGray font-bold block mb-2;
+}
+.label {
+  @apply text-labelGray font-bold block mb-2;
+}
+
+input[type="text"] {
+  @apply w-full px-3 py-2 text-sm bg-primaryWhite text-primaryGray border border-secondaryGray rounded-lg;
+
+  &:focus {
+    @apply outline-none ring-1 ring-primaryGreen border-primaryGreen;
+  }
+}
+
+/* Base styling for all select inputs */
+select {
+  @apply appearance-none relative w-full px-3 py-2 text-sm bg-primaryWhite text-primaryGray border border-secondaryGray rounded-lg;
+  background-image: url("./assets/icons/chevron-down.png");
+  background-size: 14px 14px;
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+
+  &:focus {
+    @apply outline-none ring-1 ring-primaryGreen border-primaryGreen;
+  }
+
+  &::-ms-expand {
+    display: none;
+  }
+
+  & option:disabled {
+    color: #afafaf;
+  }
+}
+
+/* Styling for Custom Checkboxes */
+.custom-checkbox {
+  @apply inline-block relative;
+}
+
+.checkbox {
+  @apply w-5 h-5 border ml-3 rounded-md border-secondaryGray bg-transparent flex justify-center items-center transition-all duration-200;
+}
+
+.custom-checkbox input:checked + .checkbox {
+  @apply bg-primaryGreen border-primaryGreen;
+}
+
+.custom-checkbox input:checked + .checkbox::after {
+  transform: translate(-50%, -50%) scale(1);
+}
