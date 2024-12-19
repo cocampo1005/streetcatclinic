@@ -30,7 +30,7 @@ function NavItem({ to, label, icon }) {
 
 export default function NavPanel() {
   return (
-    <nav className="w-56 bg-primaryGray font-accent text-primaryWhite flex flex-col justify-between">
+    <nav className="w-56 fixed h-screen bg-primaryGray font-accent text-primaryWhite flex flex-col justify-between">
       <div>
         {/* Logo */}
         <div className="flex p-8 justify-center items-center">

@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import chevron from "../assets/icons/chevron-down.png";
 import { RoundX } from "./svgs/Icons";
 
-export default function MultiSelect({ options, label, placeholder }) {
+const DropdownComponent = ({ label, options, placeholder }) => {
   const [selected, setSelected] = useState([]);
   const [isDropdownVisible, setDropdownVisible] = useState(false);
+
+  const dropdownRef = useRef(null); // Reference to the dropdown container
+  const inputRef = useRef(null); // Reference to the input (or the div that's acting as the input)
 
   const toggleOption = (option) => {
     setSelected((prev) =>
@@ -14,10 +17,32 @@ export default function MultiSelect({ options, label, placeholder }) {
     );
   };
 
+  // Handle click outside of the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setDropdownVisible(false); // Close the dropdown
+        inputRef.current.blur(); // Remove focus from the input div
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="w-full">
       <label>{label}</label>
       <div
+        ref={inputRef} // Attach ref to the input container
         className="relative rounded-lg border border-secondaryGray focus:border-primaryGreen focus:ring-1 focus:ring-primaryGreen"
         tabIndex={0} // Ensures the div can receive focus
         onFocus={() => setDropdownVisible(true)}
@@ -26,7 +51,7 @@ export default function MultiSelect({ options, label, placeholder }) {
           setTimeout(() => setDropdownVisible(false), 100);
         }}
       >
-        <div className="flex flex-wrap items-center gap-2 rounded-lg p-2 pr-8">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg py-1 pl-2 pr-8">
           {selected.length > 0 ? (
             selected.map((option) => (
               <div
@@ -45,12 +70,15 @@ export default function MultiSelect({ options, label, placeholder }) {
               </div>
             ))
           ) : (
-            <span className="text-gray-400">{placeholder}</span>
+            <span className="text-gray-400 text-sm p-1">{placeholder}</span>
           )}
           <img src={chevron} className="absolute top-1/5 right-2 h-3.5 w-3.5" />
         </div>
         {isDropdownVisible && (
-          <div className="absolute top-full shadow-xl left-0 right-0 bg-white border rounded-lg mt-px z-10 max-h-40 overflow-y-auto">
+          <div
+            ref={dropdownRef} // Attach ref to the dropdown container
+            className="absolute top-full shadow-xl left-0 right-0 bg-white border rounded-lg mt-px z-10 max-h-40 overflow-y-auto"
+          >
             {options.map((option) => (
               <div
                 key={option}
@@ -69,4 +97,6 @@ export default function MultiSelect({ options, label, placeholder }) {
       </div>
     </div>
   );
-}
+};
+
+export default DropdownComponent;

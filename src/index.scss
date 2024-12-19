@@ -24,6 +24,15 @@ input[type="text"] {
   }
 }
 
+textarea {
+  @apply w-full px-3 py-2 text-sm bg-primaryWhite text-primaryGray border border-secondaryGray rounded-lg;
+  resize: none;
+  white-space: pre-wrap;
+  &:focus {
+    @apply outline-none ring-1 ring-primaryGreen border-primaryGreen;
+  }
+}
+
 /* Base styling for all select inputs */
 select {
   @apply appearance-none relative w-full px-3 py-2 text-sm bg-primaryWhite text-primaryGray border border-secondaryGray rounded-lg;

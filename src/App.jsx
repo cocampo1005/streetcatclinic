@@ -15,7 +15,7 @@ function App() {
         <NavPanel />
 
         {/* Main Content */}
-        <main className="flex-1 bg-tirtiaryGray">
+        <main className="flex-1 bg-tirtiaryGray ml-56">
           <Routes>
             <Route path="/" element={<NewEntryPage />} />
             <Route path="/trappers" element={<TrappersPage />} />

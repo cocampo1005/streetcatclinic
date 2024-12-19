@@ -15,13 +15,17 @@ export default function DropdownMenuInput({
         id={id}
         name={id}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const element = e.target;
+          element.classList.toggle("text-gray-400", element.value === "");
+          element.classList.toggle("text-primaryGray", element.value !== "");
+        }}
       >
-        <option value="" disabled selected className="text-gray-500">
+        <option value="" disabled hidden selected className="text-gray-400">
           {placeholder}
         </option>
         {options.map((option, index) => (
-          <option key={index} value={option}>
+          <option key={index} value={option} className="text-primaryGray">
             {option}
           </option>
         ))}
