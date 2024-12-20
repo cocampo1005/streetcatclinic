@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DropdownMenuInput from "../components/DropdownMenuInput";
 import {
   additionalDrugs,
@@ -10,6 +10,7 @@ import {
   surgeriesPerformed,
   surgicalNotes,
 } from "../data/dropdownOptions";
+import { dosageChart } from "../data/dosageChart";
 import { Checkmark, NoCert } from "../components/svgs/Icons";
 import qualified from "../assets/icons/qualified-icon.png";
 import notQualified from "../assets/icons/not-qualified-icon.png";
@@ -17,18 +18,177 @@ import MultiSelect from "../components/MultiSelectInput";
 import EditableSelect from "../components/EditableSelect";
 import { NewEntryIcon } from "../components/svgs/NavIcons";
 
+const trappers = [
+  { id: 1, name: "Tia Williams", qualifies: true },
+  { id: 2, name: "John Smith", qualifies: false },
+  { id: 3, name: "Angela Brown", qualifies: true },
+  { id: 4, name: "Carlos Hernandez", qualifies: false },
+];
+
+const formatDateWithSlashes = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${month}/${day}/${year}`;
+};
+
 export default function NewEntryPage() {
+  const [selectedTrapper, setSelectedTrapper] = useState("");
+  const [intakePickupDate, setIntakePickupDate] = useState(
+    formatDateWithSlashes(new Date())
+  );
   const [selectedService, setSelectedService] = useState("");
-  const trappers = [
-    { id: 1, name: "Tia Williams" },
-    { id: 2, name: "John Smith" },
-    { id: 3, name: "Angela Brown" },
-    { id: 4, name: "Carlos Hernandez" },
-  ];
+  const [catId, setCatId] = useState(`${formatDateWithSlashes(new Date())}-`);
+  const [crossStreet, setCrossStreet] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [microchip, setMicrochip] = useState(false);
+  const [microchipNumber, setMicrochipNumber] = useState("");
+  const [rabies, setRabies] = useState(false);
+  const [rabiesWithoutCertificate, setRabiesWithoutCertificate] =
+    useState(false);
+  const [FVRCP, setFVRCP] = useState(false);
+  const [FeLVFIV, setFeLVFIV] = useState("");
+  const [selectedSurgeriesPerformed, setSelectedSurgeriesPerformed] = useState(
+    []
+  );
+  const [weight, setWeight] = useState("");
+  const [selectedAdditionalDrug, setSelectedAdditionalDrug] = useState("");
+  const [dosage, setDosage] = useState("");
+  const [surgicalNotes, setSurgicalNotes] = useState("");
+  const [catName, setCatName] = useState("");
+  const [age, setAge] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
+  const [sex, setSex] = useState("");
+  const [breed, setBreed] = useState("");
+  const [color, setColor] = useState([]);
+  const [veterinarian, setVeterinarian] = useState("");
+  const [selectedOutcome, setSelectedOutcome] = useState("");
+  const [qualifiesForTIP, setQualifiesForTIP] = useState(false);
+
+  const createEntryObject = () => {
+    const entry = {
+      trapper: selectedTrapper,
+      intakePickupDate,
+      service: selectedService,
+      catId,
+      crossStreet,
+      microchip,
+      microchipNumber,
+      rabies,
+      rabiesWithoutCertificate,
+      FVRCP,
+      FeLVFIV,
+      weight,
+      selectedAdditionalDrug,
+      dosage,
+      catName,
+      age,
+      sex,
+      breed,
+      color,
+      selectedSurgeriesPerformed,
+      surgicalNotes,
+      additionalNotes,
+      veterinarian,
+      selectedOutcome,
+      qualifiesForTIP,
+    };
+    return entry;
+  };
+
+  // Log changes whenever any state is updated
+  useEffect(() => {
+    console.log("Form updated:", createEntryObject());
+  }, [
+    selectedTrapper,
+    intakePickupDate,
+    selectedService,
+    catId,
+    crossStreet,
+    microchip,
+    microchipNumber,
+    rabies,
+    rabiesWithoutCertificate,
+    FVRCP,
+    FeLVFIV,
+    weight,
+    selectedAdditionalDrug,
+    dosage,
+    catName,
+    age,
+    sex,
+    breed,
+    color,
+    selectedSurgeriesPerformed,
+    surgicalNotes,
+    additionalNotes,
+    veterinarian,
+    selectedOutcome,
+    qualifiesForTIP,
+  ]);
 
   const handlePlaceholderColorChange = (element) => {
     element.classList.toggle("text-gray-400", element.value === "");
     element.classList.toggle("text-primaryGray", element.value !== "");
+  };
+
+  useEffect(() => {
+    if (selectedSurgeriesPerformed.includes("Neuter (Male)")) {
+      setSex("Male");
+    } else if (selectedSurgeriesPerformed.includes("Spay (Female)")) {
+      setSex("Female");
+    }
+  }, [selectedSurgeriesPerformed]);
+
+  const handleCalculate = (inputWeight, selectedDrug) => {
+    if (!inputWeight || !selectedDrug) return "";
+
+    // Find the closest weight in the chart
+    const closestEntry = dosageChart.reduce((prev, curr) => {
+      return Math.abs(curr.weight - inputWeight) <
+        Math.abs(prev.weight - inputWeight)
+        ? curr
+        : prev;
+    });
+
+    // Return the dosage for the selected drug
+    return closestEntry[selectedDrug] || "No dosage available";
+  };
+
+  // useEffect to calculate dosage when weight or selected drug changes
+  useEffect(() => {
+    if (weight && selectedAdditionalDrug) {
+      const calculatedDosage = handleCalculate(weight, selectedAdditionalDrug);
+      setDosage(calculatedDosage); // Update dosage state
+    } else {
+      setDosage(""); // Reset dosage if inputs are missing
+    }
+  }, [weight, selectedAdditionalDrug]);
+
+  useEffect(() => {
+    const currTrapper = trappers.find(
+      (trapper) => trapper.id === selectedTrapper
+    );
+    console.log(currTrapper);
+    const trapperQualifies = currTrapper && currTrapper.qualifies;
+    const serviceQualifies = selectedService === "MD-TNVR";
+    setQualifiesForTIP(trapperQualifies && serviceQualifies);
+  }, [selectedTrapper, selectedService]);
+
+  const handleMicrochipChange = (e) => {
+    setMicrochip(e.target.checked);
+    if (!e.target.checked) {
+      setMicrochipNumber("");
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!catName) {
+      setCatName("Unnamed");
+    }
+    // Add form submission logic here
   };
 
   return (
@@ -36,7 +196,7 @@ export default function NewEntryPage() {
       <header className="w-full border-b-2 border-tertiaryGray p-8">
         <h1 className="font-accent text-4xl">New Cat Entry</h1>
       </header>
-      <section className="flex-grow p-8 overflow-scroll">
+      <form className="flex-grow p-8 overflow-auto" onSubmit={handleSubmit}>
         {/* First Row */}
         <div className="grid grid-flow-col gap-6 mb-6">
           {/* Trapper */}
@@ -45,10 +205,10 @@ export default function NewEntryPage() {
             <select
               id="trapper"
               name="trapper"
-              defaultValue=""
-              className="text-gray-400"
+              value={selectedTrapper}
+              className={selectedTrapper ? "text-primaryGray" : "text-gray-400"}
               onChange={(e) => {
-                handlePlaceholderColorChange(e.target);
+                setSelectedTrapper(e.target.value);
               }}
             >
               <option value="" disabled hidden>
@@ -73,7 +233,9 @@ export default function NewEntryPage() {
               id="intakeDate"
               name="intakeDate"
               type="text"
-              placeholder="12/15/2024"
+              value={intakePickupDate}
+              placeholder="Enter Date"
+              onChange={(e) => setIntakePickupDate(e.target.value)}
             />
           </div>
 
@@ -83,11 +245,10 @@ export default function NewEntryPage() {
             <select
               id="service"
               name="service"
-              defaultValue=""
-              className="text-gray-400"
+              value={selectedService}
+              className={selectedService ? "text-primaryGray" : "text-gray-400"}
               onChange={(e) => {
                 setSelectedService(e.target.value);
-                handlePlaceholderColorChange(e.target);
               }}
             >
               <option value="" disabled hidden>
@@ -112,7 +273,9 @@ export default function NewEntryPage() {
               id="catID"
               name="catID"
               type="text"
-              placeholder="12/15/2024"
+              value={catId}
+              placeholder="Enter Cat ID"
+              onChange={(e) => setCatId(e.target.value)}
             />
           </div>
         </div>
@@ -128,21 +291,23 @@ export default function NewEntryPage() {
                   id="crossStreet"
                   name="crossStreet"
                   type="text"
-                  placeholder="310 N 68th Ave, Hollywood"
+                  value={crossStreet}
+                  placeholder="Enter cross street"
+                  onChange={(e) => setCrossStreet(e.target.value)}
                 />
               </div>
-
               {/* Zip Code */}
               <div className="min-w-28">
-                <label htmlFor="crossZipCode">Zip Code</label>
+                <label htmlFor="zipCode">Zip Code</label>
                 <input
-                  id="crossZipCode"
-                  name="crossZipCode"
+                  id="zipCode"
+                  name="zipCode"
                   type="text"
-                  placeholder="33025"
+                  value={zipCode}
+                  placeholder="Enter zip"
+                  onChange={(e) => setZipCode(e.target.value)}
                 />
               </div>
-
               {/* Microchip */}
               <div className="min-w-40">
                 <div className="flex items-center">
@@ -150,17 +315,25 @@ export default function NewEntryPage() {
                     Microchip
                   </label>
                   <label className="custom-checkbox">
-                    <input type="checkbox" className="hidden" />
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={microchip}
+                      onChange={handleMicrochipChange}
+                    />
                     <span className="checkbox">
                       <Checkmark />
                     </span>
                   </label>
                 </div>
                 <input
-                  id="microchip"
-                  name="microchip"
+                  id="microchip-number"
+                  name="microchip-number"
                   type="text"
-                  placeholder="900263000787990"
+                  placeholder={microchip ? "Enter microchip #" : "No microchip"}
+                  disabled={!microchip} // Disable if microchip checkbox is unchecked
+                  value={microchipNumber}
+                  onChange={(e) => setMicrochipNumber(e.target.value)}
                 />
               </div>
             </div>
@@ -172,7 +345,12 @@ export default function NewEntryPage() {
               <div className="flex items-start">
                 <p className="label">Rabies</p>
                 <label className="custom-checkbox">
-                  <input type="checkbox" className="hidden" />
+                  <input
+                    type="checkbox"
+                    checked={rabies}
+                    onChange={(e) => setRabies(e.target.checked)}
+                    className="hidden"
+                  />
                   <span className="checkbox mt-[2px]">
                     <Checkmark />
                   </span>
@@ -182,7 +360,14 @@ export default function NewEntryPage() {
                 <p className="label mr-1">Rabies</p>
                 <NoCert />
                 <label className="custom-checkbox">
-                  <input type="checkbox" className="hidden" />
+                  <input
+                    type="checkbox"
+                    checked={rabiesWithoutCertificate}
+                    onChange={(e) =>
+                      setRabiesWithoutCertificate(e.target.checked)
+                    }
+                    className="hidden"
+                  />
                   <span className="checkbox mt-[2px]">
                     <Checkmark />
                   </span>
@@ -191,7 +376,12 @@ export default function NewEntryPage() {
               <div className="flex items-start">
                 <p className="label">FVRCP</p>
                 <label className="custom-checkbox">
-                  <input type="checkbox" className="hidden" />
+                  <input
+                    type="checkbox"
+                    checked={FVRCP}
+                    onChange={(e) => setFVRCP(e.target.checked)}
+                    className="hidden"
+                  />
                   <span className="checkbox mt-[2px]">
                     <Checkmark />
                   </span>
@@ -207,8 +397,16 @@ export default function NewEntryPage() {
                   {["- / -", "+ / -", "- / +"].map((text, index) => (
                     <button
                       key={index}
-                      className="rounded-full px-4 text-sm font-bold border border-secondaryGray text-labelGray hover:border-primaryGreen hover:text-primaryGreen focus:border-primaryGreen focus:bg-primaryGreen focus:text-white transition"
+                      className={`rounded-full px-4 text-sm font-bold border border-secondaryGray 
+                        ${
+                          FeLVFIV === text
+                            ? "bg-primaryGreen text-white border-primaryGreen"
+                            : "text-labelGray hover:border-primaryGreen hover:text-primaryGreen"
+                        }
+                        transition`}
                       type="button"
+                      value={text}
+                      onClick={(e) => setFeLVFIV(e.target.value)}
                     >
                       {text}
                     </button>
@@ -227,6 +425,7 @@ export default function NewEntryPage() {
               label="Surgeries Performed"
               options={surgeriesPerformed}
               placeholder="Select surgeries"
+              onChange={(selected) => setSelectedSurgeriesPerformed(selected)}
             />
           </div>
           <div className="w-2/5 flex gap-6">
@@ -347,13 +546,27 @@ export default function NewEntryPage() {
           </div>
           <div className="w-2/5 flex flex-col">
             <div className="flex w-full gap-6 mb-6">
+              {/* Sex */}
               <div className="min-w-24">
                 <label htmlFor="sex">Sex</label>
-                <select id="sex" name="sex">
-                  <option>Male</option>
-                  <option>Female</option>
+                <select
+                  id="sex"
+                  name="sex"
+                  className={sex ? "text-primaryGray" : "text-gray-400"}
+                  value={sex}
+                  onChange={(e) => {
+                    setSex(e.target.value);
+                  }}
+                >
+                  <option value="" disabled hidden>
+                    Select
+                  </option>
+                  <option className="text-primaryGray">Male</option>
+                  <option className="text-primaryGray">Female</option>
                 </select>
               </div>
+
+              {/* Breed */}
               <div className="w-full">
                 <label htmlFor="breed">Breed</label>
                 <select
@@ -381,7 +594,7 @@ export default function NewEntryPage() {
               </div>
             </div>
             <div>
-              {/* Surgeries Performed */}
+              {/* Color */}
               <MultiSelect
                 label="Color"
                 options={catColors}
@@ -393,6 +606,7 @@ export default function NewEntryPage() {
 
         {/* Sixth Row */}
         <div className="flex gap-6 justify-between">
+          {/* Vet */}
           <div className="w-40">
             <label>Veterinarian</label>
             <input
@@ -403,6 +617,8 @@ export default function NewEntryPage() {
               onFocus={(e) => e.target.select()}
             />
           </div>
+
+          {/* Outcome */}
           <div className="flex-grow">
             <label htmlFor="outcome">Outcome</label>
             <select
@@ -432,21 +648,34 @@ export default function NewEntryPage() {
           {/* Trapper Qualification */}
           <div className="flex-grow">
             <label>Qualifies for TIP?</label>
-            <div className="flex h-[38px] items-center gap-2">
-              <img src={qualified} />
-              <p className="text-xs text-primaryGreen">
-                Trapper qualifies for TIP
-              </p>
-            </div>
+
+            {qualifiesForTIP ? (
+              <div className="flex h-[38px] items-center gap-2">
+                <img src={qualified} />
+                <p className="text-xs text-primaryGreen">
+                  Trapper qualifies for TIP
+                </p>
+              </div>
+            ) : (
+              <div className="flex h-[38px] items-center gap-2">
+                <img src={notQualified} />
+                <p className="text-xs text-red-500">
+                  Trapper does not qualify for TIP
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
-          <button className="flex gap-3 items-center text-lg bg-primaryGreen text-primaryWhite px-6 py-2 rounded-lg">
+          <button
+            type="submit"
+            className="flex gap-3 items-center text-lg bg-primaryGreen text-primaryWhite px-6 py-2 rounded-lg"
+          >
             <NewEntryIcon />
             Submit New Entry
           </button>
         </div>
-      </section>
+      </form>
     </>
   );
 }

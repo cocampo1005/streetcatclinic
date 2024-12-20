@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import chevron from "../assets/icons/chevron-down.png";
 import { RoundX } from "./svgs/Icons";
 
-const DropdownComponent = ({ label, options, placeholder }) => {
+const DropdownComponent = ({ label, options, placeholder, onChange }) => {
   const [selected, setSelected] = useState([]);
   const [isDropdownVisible, setDropdownVisible] = useState(false);
 
@@ -10,11 +10,19 @@ const DropdownComponent = ({ label, options, placeholder }) => {
   const inputRef = useRef(null); // Reference to the input (or the div that's acting as the input)
 
   const toggleOption = (option) => {
-    setSelected((prev) =>
-      prev.includes(option)
-        ? prev.filter((item) => item !== option)
-        : [...prev, option]
-    );
+    setSelected((prev) => {
+      const newSelected = prev.includes(option)
+        ? prev.filter((item) => item !== option) // Remove from selection
+        : [...prev, option]; // Add to selection
+
+      // Use the next render cycle to update the parent state
+      // Update parent state only after the render is complete
+      setTimeout(() => {
+        onChange(newSelected); // Call onChange to notify parent of the updated selection
+      });
+
+      return newSelected;
+    });
   };
 
   // Handle click outside of the dropdown to close it

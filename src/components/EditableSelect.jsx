@@ -41,7 +41,7 @@ export default function EditableSelect({ options }) {
       <img src={chevron} className="absolute top-1/3 right-2 h-3.5 w-3.5" />
       {isOpen && (
         <ul className="absolute w-full bg-white border border-gray-300 rounded shadow mt-1 max-h-40 overflow-y-auto z-10">
-          {options.map((option, index) => (
+          {options?.map((option, index) => (
             <li
               key={index}
               className="px-3 py-2 cursor-pointer hover:bg-gray-100"
