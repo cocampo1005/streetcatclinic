@@ -55,7 +55,7 @@ export default function NewEntryPage() {
   const [weight, setWeight] = useState("");
   const [selectedAdditionalDrug, setSelectedAdditionalDrug] = useState("");
   const [dosage, setDosage] = useState("");
-  const [surgicalNotes, setSurgicalNotes] = useState("");
+  const [selectedSurgicalNotes, setSelectedSurgicalNotes] = useState("");
   const [catName, setCatName] = useState("");
   const [age, setAge] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
@@ -88,7 +88,7 @@ export default function NewEntryPage() {
       breed,
       color,
       selectedSurgeriesPerformed,
-      surgicalNotes,
+      selectedSurgicalNotes,
       additionalNotes,
       veterinarian,
       selectedOutcome,
@@ -121,12 +121,18 @@ export default function NewEntryPage() {
     breed,
     color,
     selectedSurgeriesPerformed,
-    surgicalNotes,
+    selectedSurgicalNotes,
     additionalNotes,
     veterinarian,
     selectedOutcome,
     qualifiesForTIP,
   ]);
+
+  const handleTrapperChange = (e) => {
+    const selectedId = parseInt(e.target.value, 10); // Get the selected `id` as an integer
+    const trapper = trappers.find((t) => t.id === selectedId); // Find the full object based on `id`
+    setSelectedTrapper(trapper || "");
+  };
 
   const handlePlaceholderColorChange = (element) => {
     element.classList.toggle("text-gray-400", element.value === "");
@@ -144,16 +150,18 @@ export default function NewEntryPage() {
   const handleCalculate = (inputWeight, selectedDrug) => {
     if (!inputWeight || !selectedDrug) return "";
 
+    // Remove spaces from selectedDrug to handle any discrepancies in naming
+    const sanitizedDrug = selectedDrug.replace(/\s+/g, "");
+
     // Find the closest weight in the chart
     const closestEntry = dosageChart.reduce((prev, curr) => {
-      return Math.abs(curr.weight - inputWeight) <
-        Math.abs(prev.weight - inputWeight)
+      return Math.abs(curr.wt - inputWeight) < Math.abs(prev.wt - inputWeight)
         ? curr
         : prev;
     });
 
-    // Return the dosage for the selected drug
-    return closestEntry[selectedDrug] || "No dosage available";
+    // Return the dosage for the selected drug, or a fallback if the drug is not found
+    return closestEntry[sanitizedDrug] || "No dosage available";
   };
 
   // useEffect to calculate dosage when weight or selected drug changes
@@ -167,12 +175,9 @@ export default function NewEntryPage() {
   }, [weight, selectedAdditionalDrug]);
 
   useEffect(() => {
-    const currTrapper = trappers.find(
-      (trapper) => trapper.id === selectedTrapper
-    );
-    console.log(currTrapper);
-    const trapperQualifies = currTrapper && currTrapper.qualifies;
+    const trapperQualifies = selectedTrapper && selectedTrapper.qualifies;
     const serviceQualifies = selectedService === "MD-TNVR";
+
     setQualifiesForTIP(trapperQualifies && serviceQualifies);
   }, [selectedTrapper, selectedService]);
 
@@ -196,7 +201,7 @@ export default function NewEntryPage() {
       <header className="w-full border-b-2 border-tertiaryGray p-8">
         <h1 className="font-accent text-4xl">New Cat Entry</h1>
       </header>
-      <form className="flex-grow p-8 overflow-auto" onSubmit={handleSubmit}>
+      <form className="flex-grow p-8 overflow-visible" onSubmit={handleSubmit}>
         {/* First Row */}
         <div className="grid grid-flow-col gap-6 mb-6">
           {/* Trapper */}
@@ -205,11 +210,9 @@ export default function NewEntryPage() {
             <select
               id="trapper"
               name="trapper"
-              value={selectedTrapper}
+              value={selectedTrapper.id || ""}
               className={selectedTrapper ? "text-primaryGray" : "text-gray-400"}
-              onChange={(e) => {
-                setSelectedTrapper(e.target.value);
-              }}
+              onChange={handleTrapperChange}
             >
               <option value="" disabled hidden>
                 Select a trapper
@@ -435,7 +438,15 @@ export default function NewEntryPage() {
                 Weight
               </label>
               <div className="relative">
-                <input id="weight" name="weight" type="text" />
+                <input
+                  id="weight"
+                  name="weight"
+                  type="text"
+                  value={weight}
+                  onChange={(e) => {
+                    setWeight(e.target.value);
+                  }}
+                />
                 <span className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-500">
                   lbs
                 </span>
@@ -448,10 +459,12 @@ export default function NewEntryPage() {
               <select
                 id="additionalDrugs"
                 name="additionalDrugs"
-                defaultValue=""
-                className="text-gray-400"
+                value={selectedAdditionalDrug}
+                className={
+                  selectedAdditionalDrug ? "text-primaryGray" : "text-gray-400"
+                }
                 onChange={(e) => {
-                  handlePlaceholderColorChange(e.target);
+                  setSelectedAdditionalDrug(e.target.value);
                 }}
               >
                 <option value="" disabled hidden>
@@ -471,7 +484,13 @@ export default function NewEntryPage() {
                 Dosage
               </label>
               <div className="relative">
-                <input id="dosage" name="dosage" type="text" />
+                <input
+                  id="dosage"
+                  name="dosage"
+                  type="text"
+                  value={dosage}
+                  onChange={(e) => setDosage(e.target.value)}
+                />
                 <span className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-500">
                   mls
                 </span>
@@ -487,7 +506,11 @@ export default function NewEntryPage() {
             <label htmlFor="surgicalNotes" className="block">
               Surgical Notes
             </label>
-            <EditableSelect options={surgicalNotes} />
+            <EditableSelect
+              options={surgicalNotes}
+              selectedValue={selectedSurgicalNotes}
+              onChange={(newValue) => setSelectedSurgicalNotes(newValue)}
+            />
           </div>
           <div className="w-2/5 flex gap-6">
             {/* Cat's Name */}
@@ -498,7 +521,8 @@ export default function NewEntryPage() {
                 name="catName"
                 type="text"
                 placeholder="Enter Name"
-                defaultValue="Unnamed"
+                value={catName || "Unnamed"}
+                onChange={(e) => setCatName(e.target.value)}
                 onFocus={(e) => e.target.select()}
               />
             </div>
@@ -510,9 +534,11 @@ export default function NewEntryPage() {
                 id="age"
                 name="age"
                 defaultValue=""
-                className="text-gray-400"
+                className={
+                  selectedAdditionalDrug ? "text-primaryGray" : "text-gray-400"
+                }
                 onChange={(e) => {
-                  handlePlaceholderColorChange(e.target);
+                  setAge(e.target.value);
                 }}
               >
                 <option value="" disabled hidden>
@@ -540,6 +566,8 @@ export default function NewEntryPage() {
                 name="additionalNotes"
                 type="text"
                 placeholder="Enter additonal notes or medications here"
+                value={additionalNotes}
+                onChange={(e) => setAdditionalNotes(e.target.value)}
                 className="h-full"
               />
             </div>
@@ -573,9 +601,9 @@ export default function NewEntryPage() {
                   id="breed"
                   name="breed"
                   defaultValue=""
-                  className="text-gray-400"
+                  className={breed ? "text-primaryGray" : "text-gray-400"}
                   onChange={(e) => {
-                    handlePlaceholderColorChange(e.target);
+                    setBreed(e.target.value);
                   }}
                 >
                   <option value="" disabled hidden>
@@ -599,6 +627,7 @@ export default function NewEntryPage() {
                 label="Color"
                 options={catColors}
                 placeholder="Select color(s)"
+                onChange={(selected) => setColor(selected)}
               />
             </div>
           </div>
@@ -625,9 +654,9 @@ export default function NewEntryPage() {
               id="outcome"
               name="outcome"
               defaultValue=""
-              className="text-gray-400"
+              className={outcomes ? "text-primaryGray" : "text-gray-400"}
               onChange={(e) => {
-                handlePlaceholderColorChange(e.target);
+                setSelectedOutcome(e.target.value);
               }}
             >
               <option value="" disabled hidden>
@@ -649,21 +678,26 @@ export default function NewEntryPage() {
           <div className="flex-grow">
             <label>Qualifies for TIP?</label>
 
-            {qualifiesForTIP ? (
-              <div className="flex h-[38px] items-center gap-2">
-                <img src={qualified} />
-                <p className="text-xs text-primaryGreen">
-                  Trapper qualifies for TIP
-                </p>
-              </div>
-            ) : (
-              <div className="flex h-[38px] items-center gap-2">
-                <img src={notQualified} />
-                <p className="text-xs text-red-500">
-                  Trapper does not qualify for TIP
-                </p>
-              </div>
-            )}
+            {/* Check if both qualifiesForTIP and selectedService are provided */}
+            {selectedTrapper !== "" && selectedService !== "" ? (
+              qualifiesForTIP ? (
+                <div className="flex h-[38px] items-center gap-2">
+                  <img src={qualified} />
+                  <p className="text-xs text-primaryGreen">
+                    Trapper qualifies for TIP
+                  </p>
+                </div>
+              ) : (
+                <div className="flex h-[38px] items-center gap-2">
+                  <img src={notQualified} />
+                  <p className="text-xs text-red-500">
+                    {selectedService === "MD-TNVR"
+                      ? "Trapper does not qualify for TIP"
+                      : "Service is not MD-TNVR"}
+                  </p>
+                </div>
+              )
+            ) : null}
           </div>
 
           {/* Submit Button */}

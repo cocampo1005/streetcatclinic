@@ -64,7 +64,19 @@ export const breeds = ["DLH", "DMH", "DSH", "Persian", "Siamese", "Other"];
 
 export const estimatedAges = ["<4m", "4m-6m", "6m-1y", "1-5y", "5-10y", ">10y"];
 
-export const additionalDrugs = ["LRS", "PenG", "Convenia", "Praziquantel"];
+export const additionalDrugs = [
+  "Atipamezole",
+  "Atropine",
+  "Bupivicaine",
+  "Convenia",
+  "DKT",
+  "Epinephrine",
+  "Lidocaine",
+  "Meloxicam",
+  "Pen G",
+  "Praziquantel",
+  "Selamectin",
+];
 
 export const outcomes = [
   "Alive",
