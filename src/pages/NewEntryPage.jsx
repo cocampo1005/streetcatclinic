@@ -17,13 +17,7 @@ import notQualified from "../assets/icons/not-qualified-icon.png";
 import MultiSelect from "../components/MultiSelectInput";
 import EditableSelect from "../components/EditableSelect";
 import { NewEntryIcon } from "../components/svgs/NavIcons";
-
-const trappers = [
-  { id: 1, name: "Tia Williams", qualifies: true },
-  { id: 2, name: "John Smith", qualifies: false },
-  { id: 3, name: "Angela Brown", qualifies: true },
-  { id: 4, name: "Carlos Hernandez", qualifies: false },
-];
+import { useTrappers } from "../contexts/TrappersContext";
 
 const formatDateWithSlashes = (date) => {
   const d = new Date(date);
@@ -39,7 +33,7 @@ export default function NewEntryPage() {
     formatDateWithSlashes(new Date())
   );
   const [selectedService, setSelectedService] = useState("");
-  const [catId, setCatId] = useState(`${formatDateWithSlashes(new Date())}-`);
+  const [catId, setCatId] = useState(`${formatDateWithSlashes(new Date())}- `);
   const [crossStreet, setCrossStreet] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [microchip, setMicrochip] = useState(false);
@@ -65,6 +59,8 @@ export default function NewEntryPage() {
   const [veterinarian, setVeterinarian] = useState("");
   const [selectedOutcome, setSelectedOutcome] = useState("");
   const [qualifiesForTIP, setQualifiesForTIP] = useState(false);
+
+  const { trappers } = useTrappers();
 
   const createEntryObject = () => {
     const entry = {
@@ -129,14 +125,9 @@ export default function NewEntryPage() {
   ]);
 
   const handleTrapperChange = (e) => {
-    const selectedId = parseInt(e.target.value, 10); // Get the selected `id` as an integer
+    const selectedId = e.target.value; // Get the selected `id` as an integer
     const trapper = trappers.find((t) => t.id === selectedId); // Find the full object based on `id`
     setSelectedTrapper(trapper || "");
-  };
-
-  const handlePlaceholderColorChange = (element) => {
-    element.classList.toggle("text-gray-400", element.value === "");
-    element.classList.toggle("text-primaryGray", element.value !== "");
   };
 
   useEffect(() => {
@@ -223,7 +214,7 @@ export default function NewEntryPage() {
                   value={trapper.id}
                   className="text-primaryGray"
                 >
-                  {trapper.id} - {trapper.name}
+                  {trapper.trapperId} - {trapper.name}
                 </option>
               ))}
             </select>
@@ -703,7 +694,7 @@ export default function NewEntryPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="flex gap-3 items-center text-lg bg-primaryGreen text-primaryWhite px-6 py-2 rounded-lg"
+            className="flex gap-3 items-center text-lg bg-primaryGreen text-primaryWhite px-6 py-2 rounded-lg hover:bg-secondaryGreen active:bg-primaryGreen"
           >
             <NewEntryIcon />
             Submit New Entry
