@@ -1,16 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import { db } from "../firebase-config";
 
-// Create context
 const TrappersContext = createContext();
 
-// Provider component
 export const TrappersProvider = ({ children }) => {
   const [trappers, setTrappers] = useState([]);
 
+  // Fetch trappers from Firestore
   useEffect(() => {
-    // Fetch trappers from Firestore
     const fetchTrappers = async () => {
       try {
         const trappersSnapshot = await getDocs(collection(db, "trappers"));
@@ -35,8 +40,48 @@ export const TrappersProvider = ({ children }) => {
     fetchTrappers();
   }, []);
 
+  // Add a new trapper
+  const createTrapper = async (trapperData) => {
+    try {
+      const docRef = await addDoc(collection(db, "trappers"), trapperData);
+      const newTrapper = { id: docRef.id, ...trapperData };
+      setTrappers((prevTrappers) => [...prevTrappers, newTrapper]);
+    } catch (error) {
+      console.error("Error adding trapper:", error);
+    }
+  };
+
+  // Update a trapper
+  const updateTrapper = async (id, updatedData) => {
+    try {
+      const trapperRef = doc(db, "trappers", id);
+      await updateDoc(trapperRef, updatedData);
+      setTrappers((prevTrappers) =>
+        prevTrappers.map((trapper) =>
+          trapper.id === id ? { ...trapper, ...updatedData } : trapper
+        )
+      );
+    } catch (error) {
+      console.error("Error updating trapper:", error);
+    }
+  };
+
+  // Delete a trapper
+  const deleteTrapper = async (id) => {
+    try {
+      await deleteDoc(doc(db, "trappers", id));
+      setTrappers((prevTrappers) =>
+        prevTrappers.filter((trapper) => trapper.id !== id)
+      );
+    } catch (error) {
+      console.error("Error deleting trapper:", error);
+    }
+  };
+
   return (
-    <TrappersContext.Provider value={{ trappers }}>
+    <TrappersContext.Provider
+      value={{ trappers, createTrapper, updateTrapper, deleteTrapper }}
+    >
       {children}
     </TrappersContext.Provider>
   );
