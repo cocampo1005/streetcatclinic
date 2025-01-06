@@ -9,13 +9,19 @@ import {
 } from "../components/svgs/Icons";
 import { useTrappers } from "../contexts/TrappersContext";
 import TrapperModal from "../components/TrapperModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function TrappersPage() {
-  const [selectedTrapper, setSelectedTrapper] = useState(null);
+  const [selectedTrapperId, setSelectedTrapperId] = useState(null);
   const { trappers, createTrapper, updateTrapper, deleteTrapper } =
     useTrappers();
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [editTrapper, setEditTrapper] = useState(null);
+
+  const selectedTrapper = trappers.find(
+    (trapper) => trapper.id === selectedTrapperId
+  );
 
   const handleAdd = () => {
     setEditTrapper(null); // No initial data for adding a new trapper
@@ -36,8 +42,14 @@ export default function TrappersPage() {
     setModalOpen(false);
   };
 
+  const confirmDelete = () => {
+    deleteTrapper(selectedTrapper.id);
+    setDeleteModalOpen(false);
+    setSelectedTrapperId(null); // Deselect trapper after deletion
+  };
+
   const handleRowClick = (trapper) => {
-    setSelectedTrapper(trapper);
+    setSelectedTrapperId(trapper.id);
   };
 
   return (
@@ -58,6 +70,25 @@ export default function TrappersPage() {
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
           initialData={editTrapper || {}} // Pass an empty object for adding a new trapper
+        />
+      )}
+      {isDeleteModalOpen && (
+        <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Trapper"
+          message={
+            <>
+              <p>Are you sure you want to delete trapper: </p>
+              <p className="pl-4 py-2">
+                <strong>
+                  {selectedTrapper?.trapperId} - {selectedTrapper?.firstName}{" "}
+                  {selectedTrapper?.lastName}
+                </strong>
+              </p>
+            </>
+          }
         />
       )}
       <section className="p-8 max-h-screen flex flex-col gap-8">
@@ -121,7 +152,10 @@ export default function TrappersPage() {
               )}
             </div>
             <div className="flex flex-col justify-between items-end gap-4">
-              <button className="text-secondaryGray hover:text-errorRed">
+              <button
+                onClick={() => setDeleteModalOpen(true)}
+                className="text-secondaryGray hover:text-errorRed"
+              >
                 <DeleteIcon />
               </button>
               <button
@@ -150,8 +184,9 @@ export default function TrappersPage() {
                 <th className="px-6 py-3 text-left">Name</th>
                 <th className="px-6 py-3 text-left">Address</th>
                 <th className="px-6 py-3 text-left">Phone Number</th>
-                <th className="px-6 py-3 text-left">Code</th>
-                <th className="rounded-tr-xl rounded-br-xl"></th>
+                <th className="px-6 py-3 text-left rounded-tr-xl rounded-br-xl">
+                  Code
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-300 overflow-y-auto max-h-[calc(100vh-350px)]">
@@ -178,11 +213,6 @@ export default function TrappersPage() {
                   </td>
                   <td className="px-6 py-4">{trapper.phone}</td>
                   <td className="px-6 py-4">{trapper.code}</td>
-                  <td className="px-6 py-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="text-primaryGreen hover:text-secondaryGreen">
-                      <EditIcon />
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>

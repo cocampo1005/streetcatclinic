@@ -1,20 +1,26 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Checkmark, DeleteIcon } from "./svgs/Icons";
 import uploadSignature from "../assets/images/upload-signature.png";
 import { storage } from "../firebase-config";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { useTrappers } from "../contexts/TrappersContext";
 
 const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
+  const { trappers } = useTrappers();
   const [formData, setFormData] = useState({
     firstName: initialData.firstName || "",
     lastName: initialData.lastName || "",
     email: initialData.email || "",
     phone: initialData.phone || "",
-    street: initialData.street || "",
-    apartment: initialData.apartment || "",
-    city: initialData.city || "",
-    state: initialData.state || "FL",
-    zip: initialData.zip || "",
+    address: {
+      street: initialData.address?.street || "",
+      apartment: initialData.address?.apartment || "",
+      city: initialData.address?.city || "",
+      state: initialData.address?.state || "FL",
+      zip: initialData.address?.zip || "",
+    },
+    code: initialData.code || "",
+    trapperId: initialData.trapperId || "",
     qualifies: initialData.qualifies || false,
     signature: initialData.signature || null,
   });
@@ -26,20 +32,53 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
   const MAX_FILE_SIZE_MB = 2;
   const ALLOWED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 
+  console.log("Initial Data:", initialData);
+
+  const getNextTrapperId = (trappers) => {
+    if (trappers.length === 0) return "1"; // Default to "1" if no trappers exist
+    const lastTrapper = trappers[trappers.length - 1]; // Get the last trapper
+    return (parseInt(lastTrapper.trapperId, 10) + 1).toString(); // Increment and return as a string
+  };
+
+  // Set the default trapperId when the component mounts
+  useEffect(() => {
+    if (!initialData.trapperId) {
+      const nextTrapperId = getNextTrapperId(trappers);
+      console.log(initialData);
+
+      setFormData((prevData) => ({
+        ...prevData,
+        trapperId: nextTrapperId,
+      }));
+    }
+  }, [initialData, trappers]);
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-    // Validate the field and update errors
+
+    // Handle nested updates for `address` fields
+    if (["street", "apartment", "city", "state", "zip"].includes(name)) {
+      setFormData((prev) => ({
+        ...prev,
+        address: {
+          ...prev.address,
+          [name]: value,
+        },
+      }));
+    } else {
+      // Handle all other fields
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    }
+
+    // Validate required fields and update errors
     if (!value.trim() && name !== "apartment") {
       setErrors((prev) => ({ ...prev, [name]: `${name} is required.` }));
     } else {
       setErrors((prev) => ({ ...prev, [name]: "" })); // Clear error for valid input
     }
-    console.log("Form Data: ", formData);
-    console.log("Errors: ", errors);
   };
 
   const handleDragOver = (e) => {
@@ -114,25 +153,49 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
     "lastName",
     "email",
     "phone",
-    "street",
-    "city",
-    "state",
-    "zip",
-    "signature",
+    "address.street",
+    "address.city",
+    "address.state",
+    "address.zip",
+    "code",
+    "trapperId",
   ];
+
+  const getNestedValue = (obj, path) => {
+    return path.split(".").reduce((acc, key) => acc && acc[key], obj);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form Data before validation:", formData);
+
     // Final validation before submission
     const newErrors = {};
 
+    // Validate required fields, including nested properties
     requiredFields.forEach((field) => {
-      if (!formData[field]) {
+      const value = getNestedValue(formData, field);
+      if (!value) {
         newErrors[field] = `${field} is required.`;
       }
     });
 
+    // Handle errors for nested address fields explicitly
+    if (!formData.address.street) {
+      newErrors["address.street"] = "Street address is required.";
+    }
+    if (!formData.address.city) {
+      newErrors["address.city"] = "City is required.";
+    }
+    if (!formData.address.state) {
+      newErrors["address.state"] = "State is required.";
+    }
+    if (!formData.address.zip) {
+      newErrors["address.zip"] = "ZIP code is required.";
+    }
+
     if (Object.keys(newErrors).length > 0) {
+      console.log("Validation errors:", newErrors);
       setErrors(newErrors);
       return;
     }
@@ -142,12 +205,18 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
 
       // If a file was uploaded, upload it to Firebase Storage
       if (formData.signature instanceof File) {
+        console.log(
+          "Uploading file to Firebase Storage:",
+          formData.signature.name
+        );
         const storageRef = ref(
           storage,
           `signatures/${Date.now()}_${formData.signature.name}`
         );
         const snapshot = await uploadBytes(storageRef, formData.signature);
+        console.log("File uploaded, Firebase Storage snapshot:", snapshot);
         signatureUrl = await getDownloadURL(snapshot.ref);
+        console.log("Generated file URL:", signatureUrl);
       }
 
       // Save the formData to Firestore, replacing the file with its URL
@@ -155,8 +224,10 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
         ...formData,
         signature: signatureUrl,
       };
+      console.log("Data to save to Firestore:", formDataToSave);
 
-      onSave(formDataToSave);
+      await onSave(formDataToSave);
+      console.log("Data saved to Firestore successfully!");
       onClose();
     } catch (error) {
       console.error("Error uploading file or saving data:", error);
@@ -172,10 +243,44 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
   return (
     <div className="fixed inset-0 bg-cyan-950 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl py-8 px-16 w-full max-w-xl">
-        <h2 className="text-2xl font-bold mb-4">
-          {initialData.id ? "Edit Trapper" : "Add Trapper"}
-        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl text-primaryGreen font-bold mb-4">
+              {initialData.id ? "Edit Trapper" : "Add Trapper"}
+            </h2>
+            <div className="flex items-center space-x-4">
+              <div className="flex flex-col items-end">
+                <label>
+                  Trapper ID <span className="text-errorRed">*</span>
+                </label>
+                {errors.trapperId && (
+                  <p className="text-errorRed text-xs">{errors.trapperId}</p>
+                )}
+                <input
+                  type="text"
+                  name="trapperId"
+                  value={formData.trapperId}
+                  onChange={handleInputChange}
+                  className="max-w-14"
+                />
+              </div>
+              <div className="flex flex-col items-end">
+                <label>
+                  Trapper Code <span className="text-errorRed">*</span>
+                </label>
+                {errors.code && (
+                  <p className="text-errorRed text-xs">{errors.code}</p>
+                )}
+                <input
+                  type="text"
+                  name="code"
+                  value={formData.code}
+                  onChange={handleInputChange}
+                  className="max-w-20"
+                />
+              </div>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-8">
             <div>
               <label>
@@ -247,7 +352,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
               <input
                 type="text"
                 name="street"
-                value={formData.street}
+                value={formData.address.street}
                 onChange={handleInputChange}
               />
             </div>
@@ -256,7 +361,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
               <input
                 type="text"
                 name="apartment"
-                value={formData.apartment}
+                value={formData.address.apartment}
                 onChange={handleInputChange}
               />
             </div>
@@ -272,7 +377,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
               <input
                 type="text"
                 name="city"
-                value={formData.city}
+                value={formData.address.city}
                 onChange={handleInputChange}
               />
             </div>
@@ -286,7 +391,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
               <input
                 type="text"
                 name="state"
-                value={formData.state}
+                value={formData.address.state}
                 onChange={handleInputChange}
               />
             </div>
@@ -300,7 +405,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
               <input
                 type="text"
                 name="zip"
-                value={formData.zip}
+                value={formData.address.zip}
                 onChange={handleInputChange}
               />
             </div>
@@ -393,7 +498,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
             <button
               type="button"
               onClick={onClose}
-              className="py-2 px-4 font-bold border-2 border-primaryGreen text-primaryGreen rounded-lg hover:bg-tertiaryGreen"
+              className="py-2 px-4 font-bold border-2 border-primaryGreen text-primaryGreen rounded-lg hover:bg-green-100"
             >
               Cancel
             </button>
@@ -401,7 +506,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
               type="submit"
               className="py-2 px-4 rounded-lg bg-primaryGreen text-white hover:bg-secondaryGreen"
             >
-              Save
+              {initialData.id ? "Update" : "Add"}
             </button>
           </div>
         </form>

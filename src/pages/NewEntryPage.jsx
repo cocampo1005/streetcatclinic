@@ -214,7 +214,7 @@ export default function NewEntryPage() {
                   value={trapper.id}
                   className="text-primaryGray"
                 >
-                  {trapper.trapperId} - {trapper.name}
+                  {trapper.trapperId} - {trapper.firstName} {trapper.lastName}
                 </option>
               ))}
             </select>
