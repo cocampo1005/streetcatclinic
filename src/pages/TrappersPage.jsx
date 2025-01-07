@@ -80,7 +80,10 @@ export default function TrappersPage() {
           title="Delete Trapper"
           message={
             <>
-              <p>Are you sure you want to delete trapper: </p>
+              <p>
+                Are you sure you want to delete the following trapper? This
+                action cannot be undone.
+              </p>
               <p className="pl-4 py-2">
                 <strong>
                   {selectedTrapper?.trapperId} - {selectedTrapper?.firstName}{" "}
@@ -160,10 +163,10 @@ export default function TrappersPage() {
               </button>
               <button
                 onClick={() => handleEdit(selectedTrapper)}
-                className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg"
+                className="text-secondaryGray hover:text-primaryGreen"
               >
                 <EditIcon />
-                <span>Edit Trapper</span>
+                {/* <span>Edit Trapper</span> */}
               </button>
             </div>
           </article>

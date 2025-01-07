@@ -2,41 +2,10 @@ import React, { useState } from "react";
 import Papa from "papaparse";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase-config";
-
-const trappers = [
-  { id: "1", name: "Tia Williams" },
-  { id: "2", name: "Danny Alvarado (Sandra)" },
-  { id: "3", name: "Tyler Kielbaey" },
-  { id: "4", name: "Kirby Kielbaey" },
-  { id: "5", name: "Joane Figueiredo" },
-  { id: "6", name: "Deylu Rincon" },
-  { id: "7", name: "Gigi Katz" },
-  { id: "8", name: "Giselle Alvarado" },
-  { id: "9", name: "Lisa Zavos" },
-  { id: "10", name: "Juan Correa" },
-  { id: "11", name: "Suely Caramelo" },
-  { id: "12", name: "Danna Stillman" },
-  { id: "13", name: "Leigh Buckner" },
-  { id: "14", name: "Yasbel Flores" },
-  { id: "15", name: "Candice D'Orsay" },
-  { id: "16", name: "Christian Follard" },
-  { id: "17", name: "Deborah Pachano" },
-  { id: "18", name: "Diana Salcedo" },
-  { id: "19", name: "Stephen Milo" },
-  { id: "20", name: "Heidi Nichols" },
-  { id: "21", name: "Stella Aguirre" },
-  { id: "22", name: "Susan Hart" },
-  { id: "23", name: "Nancy Perez" },
-  { id: "24", name: "Nicole Degrace" },
-  { id: "25", name: "Nathalie Shein" },
-  { id: "26", name: "Gina Vlasek" },
-  { id: "27", name: "Chasity Mack" },
-  { id: "28", name: "Bruna Araujo" },
-  { id: "29", name: "Nancy Piacentino" },
-  { id: "30", name: "Hector Leonardo Diez" },
-];
+import { useTrappers } from "../contexts/TrappersContext";
 
 const CsvUploader = () => {
+  const { trappers } = useTrappers();
   const [file, setFile] = useState(null);
 
   const handleFileChange = (e) => {
@@ -60,14 +29,38 @@ const CsvUploader = () => {
           (row) => row["Cat ID"] && row["Cat ID"].trim() !== ""
         );
 
+        console.log("Trappers from context:", trappers);
+
         // Clean and transform data
         const cleanedData = filteredData.map((row) => {
-          const trapperId = row["Trapper/ Rescue ID and Address"]
-            .split("-")[0]
-            .trim();
-          const trapper = trappers.find((t) => t.id === trapperId) || {
-            id: trapperId,
-          };
+          const trapperField = row["Trapper/ Rescue ID and Address"] || "";
+
+          let trapperId = null;
+          let trapperName = null;
+
+          // Check if the trapperField contains the expected format (ID - Name - Address)
+          if (trapperField.includes("-")) {
+            // Extract trapperId and metadata
+            trapperId = trapperField.split("-")[0].trim(); // Extract ID
+            trapperName = trapperField.split("-")[1]?.trim() || null; // Extract Name (optional)
+          } else {
+            // Assume this is a name-only case (e.g., "Mat Toscano")
+            trapperName = trapperField.trim();
+          }
+
+          console.log("Extracted trapperId:", trapperId);
+          console.log("Extracted trapperName:", trapperName);
+
+          // Find existing trapper by ID (if present) or fall back to minimal data
+          const trapper =
+            trapperId && trappers.find((t) => t.trapperId === trapperId)
+              ? trappers.find((t) => t.trapperId === trapperId)
+              : {
+                  trapperId: trapperId || "No ID",
+                  name: trapperName || "Unknown",
+                };
+
+          console.log("Matched trapper:", trapper);
 
           return {
             trapper,
@@ -75,6 +68,7 @@ const CsvUploader = () => {
             service: row.Service || "",
             catId: row["Cat ID"],
             crossStreet: row["TNR-Cross Street Trapped"] || "",
+            crossZip: row["TNR- Zip Code Trapped"] || "",
             microchip: row.Microchip === "TRUE",
             microchipNumber: row["Microchip #"] || "",
             rabies: row.Rabies === "TRUE",
@@ -92,15 +86,20 @@ const CsvUploader = () => {
               ? "Female"
               : "Male",
             breed: row.Breed || "",
-            color: row.Color ? row.Color.split("-") : [],
+            color: row["Color"]
+              ? row["Color"].split(",").map((c) => c.trim())
+              : [],
             surgeriesPerformed: row["Surgery Performed"]
-              ? [row["Surgery Performed"]]
+              ? row["Surgery Performed"].split(",").map((s) => s.trim())
               : [],
             surgicalNotes: row["Surgical Notes"] || "",
             additionalNotes: row["Additional Notes/ Medications"] || "",
             veterinarian: row.Veterinarian || "",
-            selectedOutcome: row.Outcome || "",
-            qualifiesForTIP: row["Qualifies for TIP?"] === "TRUE",
+            outcome: row.Outcome || "",
+            qualifiesForTIP: row["Qualifies for TIP?"]
+              ?.trim()
+              .toLowerCase()
+              .startsWith("yes"),
           };
         });
 

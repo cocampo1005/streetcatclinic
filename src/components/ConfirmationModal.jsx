@@ -14,7 +14,6 @@ export default function ConfirmationModal({
       <div className="bg-white rounded-3xl shadow-lg py-8 px-16 max-w-lg w-full">
         <h2 className="text-2xl text-primaryGray font-bold mb-4">{title}</h2>
         <div className="text-gray-700">{message}</div>
-        <p className=" mb-6">This action is permanent and cannot be undone.</p>
         <div className="flex justify-end gap-4">
           <button
             type="button"
