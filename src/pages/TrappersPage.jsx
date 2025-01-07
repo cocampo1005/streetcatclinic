@@ -166,7 +166,6 @@ export default function TrappersPage() {
                 className="text-secondaryGray hover:text-primaryGreen"
               >
                 <EditIcon />
-                {/* <span>Edit Trapper</span> */}
               </button>
             </div>
           </article>
@@ -193,10 +192,12 @@ export default function TrappersPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-300 overflow-y-auto max-h-[calc(100vh-350px)]">
-              {trappers?.map((trapper, index) => (
+              {trappers?.map((trapper) => (
                 <tr
-                  key={index}
-                  className="group hover:bg-gray-50"
+                  key={trapper.id}
+                  className={`group hover:bg-gray-50 ${
+                    selectedTrapperId === trapper.id ? "bg-tertiaryGreen" : ""
+                  }`}
                   onClick={() => handleRowClick(trapper)}
                 >
                   <td className="px-6 py-4">{trapper.trapperId}</td>

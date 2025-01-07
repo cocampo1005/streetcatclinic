@@ -19,13 +19,23 @@ import {
   VetIcon,
 } from "../components/svgs/Icons";
 import { useRecords } from "../contexts/RecordsContext";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function RecordsPage() {
-  const { records } = useRecords();
+  const { records, deleteRecord } = useRecords();
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [selectedRowId, setSelectedRowId] = useState(null);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const handleRowClick = (record) => {
     setSelectedRecord(record);
+    setSelectedRowId(record.id);
+  };
+
+  const confirmDelete = () => {
+    deleteRecord(selectedRecord.id);
+    setDeleteModalOpen(false);
+    setSelectedRecord(null);
   };
 
   return (
@@ -42,11 +52,7 @@ export default function RecordsPage() {
         </Link>
       </header>
 
-      {/* {records.map((record) => (
-        <div key={record.id}>{record.catId}</div>
-      ))} */}
-
-      {/* {isDeleteModalOpen && (
+      {isDeleteModalOpen && (
         <ConfirmationModal
           isOpen={isDeleteModalOpen}
           onClose={() => setDeleteModalOpen(false)}
@@ -59,12 +65,12 @@ export default function RecordsPage() {
                 action cannot be undone.
               </p>
               <p className="pl-4 py-2">
-                <strong>Insert Record Info Here</strong>
+                <strong>Recorded Entry: {selectedRecord.catId}</strong>
               </p>
             </>
           }
         />
-      )} */}
+      )}
       <section className="p-8 max-h-screen flex flex-col gap-8">
         {selectedRecord && (
           <article className="rounded-xl flex justify-between flex-shrink-0 gap-4 px-8">
@@ -112,38 +118,38 @@ export default function RecordsPage() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-2 flex-grow">
+            <div className="flex flex-col gap-2 h-full flex-grow">
               {/* Cat Details */}
               <div className="flex gap-3 items-start">
                 <div className="flex">
                   <ClipboardIcon />
                 </div>
-                <div className="flex flex-col gap-4 flex-grow">
+                <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2 flex-grow">
-                    <div className="grid grid-cols-3 gap-2 flex-grow">
-                      <p>
+                    <div className="grid grid-cols-4 gap-2 flex-grow">
+                      <p className="col-span-1">
                         <strong>Name: </strong>
                         {`${selectedRecord.catName}`}
                       </p>
-                      <p>
+                      <p className="col-span-1">
                         <strong>Wt: </strong>
                         {`${selectedRecord.weight} lbs`}
                       </p>
-                      <p>
+                      <p className="col-span-2">
                         <strong>Color: </strong>
                         {`${selectedRecord.color.join(", ")}`}
                       </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 flex-grow">
-                      <p>
+                    <div className="grid grid-cols-4 gap-2 flex-grow">
+                      <p className="col-span-1">
                         <strong>Breed: </strong>
                         {`${selectedRecord.breed}`}
                       </p>
-                      <p>
+                      <p className="col-span-1">
                         <strong>Age: </strong>
                         {`${selectedRecord.age}`}
                       </p>
-                      <p>
+                      <p className="col-span-2">
                         <strong>Microchip: </strong>
                         {selectedRecord.microchip
                           ? `${selectedRecord.michrochipNumber}`
@@ -151,10 +157,8 @@ export default function RecordsPage() {
                       </p>
                     </div>
                   </div>
-                  {/* </div> */}
 
                   {/* Medical Details */}
-                  {/* <div className="flex gap-3 items-start"> */}
                   <div className="flex flex-col gap-2 flex-grow">
                     <div className="grid grid-cols-2 gap-2">
                       <div className="flex flex-col gap-2 justify-between">
@@ -221,7 +225,7 @@ export default function RecordsPage() {
             </div>
             <div className="flex flex-col justify-between items-end gap-4">
               <button
-                // onClick={() => setDeleteModalOpen(true)}
+                onClick={() => setDeleteModalOpen(true)}
                 className="text-secondaryGray hover:text-errorRed"
               >
                 <DeleteIcon />
@@ -260,7 +264,9 @@ export default function RecordsPage() {
               {records?.map((record) => (
                 <tr
                   key={record.id}
-                  className="group hover:bg-gray-50"
+                  className={`group hover:bg-gray-50 ${
+                    selectedRowId === record.id ? "bg-tertiaryGreen" : ""
+                  }`}
                   onClick={() => handleRowClick(record)}
                 >
                   <td className="px-6 py-4 font-bold">{record.catId}</td>
