@@ -5,6 +5,9 @@ import svgr from "vite-plugin-svgr";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ["@react-pdf/renderer"], // Ensure Vite pre-bundles this dependency
+  },
   resolve: {
     alias: {
       "@": "/src", // Alias for the src folder

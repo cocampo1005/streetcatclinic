@@ -76,15 +76,17 @@ const CsvUploader = () => {
               ? row["TNR Rabies Given- No Certificate"] === "TRUE"
               : false,
             FVRCP: row.FVRCP === "TRUE",
-            FeLVFIV: row["FeLV/FIV"] || "",
+            FeLVFIV: row["FeLV/FIV"] || "N/A",
             weight: row["Wt (lb)"] || "",
             additionalDrug: row["Additional Drugs"] || "",
             dosage: "", // Default if not provided
-            catName: row["RESCUE- Cat Name"] || "No Name",
+            catName: row["RESCUE- Cat Name"] || "Unnamed",
             age: row["Estimated Age"] || "",
             sex: row["Surgery Performed"].includes("Female")
               ? "Female"
-              : "Male",
+              : row["Surgery Performed"].includes("Male")
+              ? "Male"
+              : "",
             breed: row.Breed || "",
             color: row["Color"]
               ? row["Color"].split(",").map((c) => c.trim())
@@ -92,9 +94,15 @@ const CsvUploader = () => {
             surgeriesPerformed: row["Surgery Performed"]
               ? row["Surgery Performed"].split(",").map((s) => s.trim())
               : [],
-            surgicalNotes: row["Surgical Notes"] || "",
+            surgicalNotes: row["Surgical Notes"]
+              ? row["Surgical Notes"]
+                  .replace(/^"(.*)"$/, "$1") // Remove surrounding quotes
+                  .split(/,(?![^"]*")/) // Split by commas not enclosed in quotes
+                  .map((note) => note.trim()) // Trim each part
+                  .join(", ") // Join back into a single string
+              : "",
             additionalNotes: row["Additional Notes/ Medications"] || "",
-            veterinarian: row.Veterinarian || "",
+            veterinarian: row.Veterinarian || "Toscano-17161",
             outcome: row.Outcome || "",
             qualifiesForTIP: row["Qualifies for TIP?"]
               ?.trim()

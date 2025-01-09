@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Checkmark, DeleteIcon } from "./svgs/Icons";
+import { BoldPlus, Checkmark, DeleteIcon, EditIcon, Plus } from "./svgs/Icons";
 import uploadSignature from "../assets/images/upload-signature.png";
 import { storage } from "../firebase-config";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
@@ -242,12 +242,15 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
 
   return (
     <div className="fixed inset-0 bg-cyan-950 bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-3xl py-8 px-16 w-full max-w-xl">
+      <div className="bg-white rounded-3xl py-12 px-16 w-full max-w-xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl text-primaryGreen font-bold mb-4">
-              {initialData.id ? "Edit Trapper" : "Add Trapper"}
-            </h2>
+            <div className="flex items-center text-primaryGreen">
+              {initialData.id ? <EditIcon size="36px" /> : <BoldPlus />}
+              <h2 className="text-3xl font-bold text-primaryGray font-accent pl-2">
+                {initialData.id ? "Edit Trapper" : "Add Trapper"}
+              </h2>
+            </div>
             <div className="flex items-center space-x-4">
               <div className="flex flex-col items-end">
                 <label>

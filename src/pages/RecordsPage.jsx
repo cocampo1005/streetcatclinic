@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import CsvUploader from "../components/CsvUploader";
-import TrapperUploader from "../components/TrapperUploader";
 import { Link } from "react-router-dom";
 import {
   CalendarIcon,
@@ -20,12 +18,14 @@ import {
 } from "../components/svgs/Icons";
 import { useRecords } from "../contexts/RecordsContext";
 import ConfirmationModal from "../components/ConfirmationModal";
+import RecordModal from "../components/RecordModal";
 
 export default function RecordsPage() {
   const { records, deleteRecord } = useRecords();
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
 
   const handleRowClick = (record) => {
     setSelectedRecord(record);
@@ -41,8 +41,7 @@ export default function RecordsPage() {
   return (
     <>
       <header className="w-full flex justify-between border-b-2 border-tertiaryGray p-8">
-        <h1 className="font-accent text-4xl">Records</h1>
-        {/* <CsvUploader /> */}
+        <h1 className="font-accent font-bold text-4xl">Records</h1>
         <Link
           to={"/"}
           className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg"
@@ -69,6 +68,12 @@ export default function RecordsPage() {
               </p>
             </>
           }
+        />
+      )}
+      {isEditModalOpen && (
+        <RecordModal
+          initialData={selectedRecord}
+          onClose={() => setEditModalOpen(false)}
         />
       )}
       <section className="p-8 max-h-screen flex flex-col gap-8">
@@ -152,7 +157,7 @@ export default function RecordsPage() {
                       <p className="col-span-2">
                         <strong>Microchip: </strong>
                         {selectedRecord.microchip
-                          ? `${selectedRecord.michrochipNumber}`
+                          ? `${selectedRecord.microchipNumber}`
                           : "None"}
                       </p>
                     </div>
@@ -231,7 +236,7 @@ export default function RecordsPage() {
                 <DeleteIcon />
               </button>
               <button
-                // onClick={() => handleEdit(selectedTrapper)}
+                onClick={() => setEditModalOpen(true)}
                 className="text-secondaryGray hover:text-primaryGreen"
               >
                 <EditIcon />

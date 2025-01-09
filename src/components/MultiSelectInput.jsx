@@ -2,27 +2,25 @@ import { useRef, useEffect, useState } from "react";
 import chevron from "../assets/icons/chevron-down.png";
 import { RoundX } from "./svgs/Icons";
 
-const DropdownComponent = ({ label, options, placeholder, onChange }) => {
-  const [selected, setSelected] = useState([]);
+const DropdownComponent = ({
+  label,
+  options,
+  placeholder,
+  value = [],
+  onChange,
+}) => {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
 
   const dropdownRef = useRef(null); // Reference to the dropdown container
-  const inputRef = useRef(null); // Reference to the input (or the div that's acting as the input)
+  const inputRef = useRef(null); // Reference to the div that's acting as the input
 
+  // Handle toggling an option (add/remove from selection)
   const toggleOption = (option) => {
-    setSelected((prev) => {
-      const newSelected = prev.includes(option)
-        ? prev.filter((item) => item !== option) // Remove from selection
-        : [...prev, option]; // Add to selection
+    const newSelected = value.includes(option)
+      ? value.filter((item) => item !== option) // Remove from selection
+      : [...value, option]; // Add to selection
 
-      // Use the next render cycle to update the parent state
-      // Update parent state only after the render is complete
-      setTimeout(() => {
-        onChange(newSelected); // Call onChange to notify parent of the updated selection
-      });
-
-      return newSelected;
-    });
+    onChange(newSelected); // Notify the parent of the updated selection
   };
 
   // Handle click outside of the dropdown to close it
@@ -34,7 +32,7 @@ const DropdownComponent = ({ label, options, placeholder, onChange }) => {
         inputRef.current &&
         !inputRef.current.contains(event.target)
       ) {
-        setDropdownVisible(false); // Close the dropdown
+        setDropdownVisible(false);
         inputRef.current.blur(); // Remove focus from the input div
       }
     };
@@ -60,8 +58,8 @@ const DropdownComponent = ({ label, options, placeholder, onChange }) => {
         }}
       >
         <div className="flex flex-wrap items-center gap-2 rounded-lg py-1 pl-2 pr-8">
-          {selected.length > 0 ? (
-            selected.map((option) => (
+          {value.length > 0 ? (
+            value.map((option) => (
               <div
                 key={option}
                 className="flex items-center bg-tertiaryGray rounded-full pl-3 pr-2 py-1 text-sm"
@@ -92,7 +90,7 @@ const DropdownComponent = ({ label, options, placeholder, onChange }) => {
                 key={option}
                 onClick={() => toggleOption(option)}
                 className={`cursor-pointer px-4 py-2 ${
-                  selected.includes(option)
+                  value.includes(option)
                     ? "bg-primaryGreen text-white hover:text-primaryGreen"
                     : ""
                 } hover:bg-tertiaryGray`}

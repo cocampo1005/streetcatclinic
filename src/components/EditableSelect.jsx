@@ -1,10 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import chevron from "../assets/icons/chevron-down.png";
 
-export default function EditableSelect({ options, selectedValue, onChange }) {
+export default function EditableSelect({ options, value = "", onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState("");
   const dropdownRef = useRef(null);
+
+  // Sync the local `selectedOption` state with the `value` prop whenever it changes
+  useEffect(() => {
+    setSelectedOption(value);
+  }, [value]);
 
   // This function handles both selecting from the dropdown and typing in the input
   const handleInputChange = (e) => {
@@ -16,7 +21,7 @@ export default function EditableSelect({ options, selectedValue, onChange }) {
   const handleSelect = (option) => {
     setSelectedOption(option);
     setIsOpen(false);
-    onChange(option); // Make sure to trigger the parent onChange to update the state
+    onChange(option);
   };
 
   // Close dropdown when clicking outside
@@ -43,7 +48,7 @@ export default function EditableSelect({ options, selectedValue, onChange }) {
         type="text"
         className="w-full px-3 py-2 border border-gray-300 rounded"
         value={selectedOption}
-        onChange={handleInputChange} // Handle typing into input
+        onChange={handleInputChange}
         placeholder="Select or edit option"
       />
       <img src={chevron} className="absolute top-1/3 right-2 h-3.5 w-3.5" />

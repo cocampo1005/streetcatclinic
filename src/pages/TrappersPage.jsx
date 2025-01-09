@@ -45,7 +45,7 @@ export default function TrappersPage() {
   const confirmDelete = () => {
     deleteTrapper(selectedTrapper.id);
     setDeleteModalOpen(false);
-    setSelectedTrapperId(null); // Deselect trapper after deletion
+    setSelectedTrapperId(null);
   };
 
   const handleRowClick = (trapper) => {
@@ -55,7 +55,7 @@ export default function TrappersPage() {
   return (
     <>
       <header className="w-full flex justify-between border-b-2 border-tertiaryGray p-8">
-        <h1 className="font-accent text-4xl">Trappers</h1>
+        <h1 className="font-accent font-bold text-4xl">Trappers</h1>
         <button
           onClick={handleAdd}
           className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg"
