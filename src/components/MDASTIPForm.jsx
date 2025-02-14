@@ -118,7 +118,7 @@ const MDASTIPForm = ({ entryData }) => (
       {/* Date Section */}
       <View style={styles.section}>
         <Text>
-          <Text style={styles.label}>Today’s Date:</Text>
+          <Text style={styles.label}>Today’s Date: </Text>
           {currDate}
         </Text>
       </View>
@@ -131,17 +131,17 @@ const MDASTIPForm = ({ entryData }) => (
         </Text>
         <View style={{ flexDirection: "row", marginBottom: 10 }}>
           <Text style={{ flex: 1 }}>
-            <Text style={styles.label}>Address:</Text>
+            <Text style={styles.label}>Address: </Text>
             {entryData.trapper.address.street}, {entryData.trapper.address.city}
             , {entryData.trapper.address.state} {entryData.trapper.address.zip}
           </Text>
           <Text style={{ flex: 1 }}>
-            <Text style={styles.label}>Apt:</Text>
+            <Text style={styles.label}>Apt: </Text>
             {entryData.trapper.address.aptartment}
           </Text>
         </View>
         <Text>
-          <Text style={styles.label}>Phone:</Text>
+          <Text style={styles.label}>Phone: </Text>
           {entryData.trapper.phone}
         </Text>
       </View>
@@ -163,13 +163,16 @@ const MDASTIPForm = ({ entryData }) => (
         </Text>
         <View style={{ flexDirection: "row", marginBottom: 10 }}>
           <Text style={{ flex: 1 }}>
-            <Text style={styles.label}>Color:</Text> {entryData.color}
+            <Text style={styles.label}>Color: </Text>
+            {entryData.color}
           </Text>
           <Text style={{ flex: 1 }}>
-            <Text style={styles.label}>Sex:</Text> {entryData.sex}
+            <Text style={styles.label}>Sex: </Text>
+            {entryData.sex}
           </Text>
           <Text style={{ flex: 2 }}>
-            <Text style={styles.label}>Age:</Text> {entryData.age}
+            <Text style={styles.label}>Age: </Text>
+            {entryData.age}
           </Text>
         </View>
         {/* Capture Details */}

@@ -5,6 +5,7 @@ import { Checkmark, NoCert } from "../components/svgs/Icons";
 import qualified from "../assets/icons/qualified-icon.png";
 import notQualified from "../assets/icons/not-qualified-icon.png";
 import { useTrappers } from "../contexts/TrappersContext";
+import { Timestamp } from "firebase/firestore";
 import {
   additionalDrugs,
   breeds,
@@ -16,13 +17,13 @@ import {
   surgicalNotes,
 } from "../data/dropdownOptions";
 import { dosageChart } from "../data/dosageChart";
-import { useRecords } from "../contexts/RecordsContext";
 import { NewEntryIcon } from "./svgs/NavIcons";
+import useRecords from "../hooks/useRecords";
 
 const formatDateWithSlashes = (date) => {
   const d = new Date(date);
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${month}/${day}/${year}`;
 };
@@ -30,12 +31,18 @@ const formatDateWithSlashes = (date) => {
 export default function RecordForm({ initialData = {}, onClose }) {
   const { trappers } = useTrappers();
   const { createRecord, updateRecord } = useRecords();
+  const [overrideQualificationsActive, setOverrideQualificationsActive] =
+    useState(false);
   const [formData, setFormData] = useState({
     trapper: initialData.trapper || "",
     intakePickupDate:
       initialData.intakePickupDate || formatDateWithSlashes(new Date()),
+    intakeTimestamp: initialData.intakeTimestamp
+      ? new Timestamp.fromDate(new Date(initialData.intakeTimestamp))
+      : Timestamp.fromDate(new Date()),
     service: initialData.service || "",
     catId: initialData.catId || `${formatDateWithSlashes(new Date())}- `,
+    catNumber: initialData.catNumber || null,
     crossStreet: initialData.crossStreet || "",
     crossZip: initialData.crossZip || "",
     microchip: initialData.microchip || false,
@@ -60,12 +67,51 @@ export default function RecordForm({ initialData = {}, onClose }) {
     qualifiesForTIP: false,
   });
 
-  // Field change handler
+  // Automatically generate catNumber when catId changes
+  useEffect(() => {
+    if (formData.catId) {
+      const trimmedCatId = formData.catId.trim();
+      const match = trimmedCatId.match(
+        /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})- (\d+)$/
+      );
+      if (match) {
+        let [, month, day, year, number] = match;
+
+        // Convert 2-digit year to 4-digit year (assume 20XX)
+        if (year.length === 2) {
+          year = `20${year}`;
+        }
+
+        // Ensure number suffix is always 3 digits (pad with leading zeros)
+        const paddedNumber = number.padStart(3, "0"); // "2" → "002", "12" → "012"
+
+        const newCatNumber = parseInt(
+          `${year}${month.padStart(2, "0")}${day.padStart(
+            2,
+            "0"
+          )}${paddedNumber}`,
+          10
+        );
+        setFormData((prev) => ({ ...prev, catNumber: newCatNumber }));
+      }
+    }
+  }, [formData.catId]);
+
   const handleFieldChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    let updatedValue = type === "checkbox" ? checked : value;
+    let updatedIntakeTimestamp = formData.intakeTimestamp;
+
+    // If changing intakePickupDate, update intakeTimestamp automatically
+    if (name === "intakePickupDate") {
+      updatedIntakeTimestamp = new Date(value);
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: updatedValue,
+      intakeTimestamp: updatedIntakeTimestamp,
     }));
     console.log("Field changed:", name, value);
     console.log("Form data:", formData);
@@ -159,8 +205,10 @@ export default function RecordForm({ initialData = {}, onClose }) {
           ...prev,
           trapper: "",
           intakePickupDate: formatDateWithSlashes(new Date()),
+          intakeTimestamp: Timestamp.fromDate(new Date()),
           service: "",
           catId: `${formatDateWithSlashes(new Date())}- `,
+          catNumber: null,
           crossStreet: "",
           crossZip: "",
           microchip: false,
@@ -182,7 +230,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
           surgicalNotes: "",
           veterinarian: "",
           outcome: "",
-          qualifiesForTIP: false, // Reset derived value
+          qualifiesForTIP: false,
         }));
       }
 
@@ -224,10 +272,10 @@ export default function RecordForm({ initialData = {}, onClose }) {
 
         {/* Pickup Date */}
         <div>
-          <label htmlFor="intakeDate">Intake / Pickup Date</label>
+          <label htmlFor="intakePickupDate">Intake / Pickup Date</label>
           <input
-            id="intakeDate"
-            name="intakeDate"
+            id="intakePickupDate"
+            name="intakePickupDate"
             type="text"
             value={formData.intakePickupDate}
             placeholder="Enter Date"
@@ -670,32 +718,43 @@ export default function RecordForm({ initialData = {}, onClose }) {
           </select>
         </div>
 
-        {/* Trapper Qualification */}
+        {/* Entry TIP Qualification */}
         <div className="flex-grow">
           <label>Qualifies for TIP?</label>
 
-          {/* Check if both qualifiesForTIP and service are provided */}
           {formData.trapper !== "" && formData.service !== "" ? (
-            formData.qualifiesForTIP ? (
-              <div className="flex h-[38px] items-center gap-2">
-                <img src={qualified} />
-                <p className="text-xs text-primaryGreen">
-                  Trapper qualifies for TIP
-                </p>
-              </div>
-            ) : (
-              <div className="flex h-[38px] items-center gap-2">
-                <img src={notQualified} />
-                <p className="text-xs text-red-500">
-                  {formData.service === "MD-TNVR"
-                    ? "Trapper does not qualify for TIP"
-                    : "Service is not MD-TNVR"}
-                </p>
-              </div>
-            )
+            <div
+              className={`flex h-[38px] items-center gap-2 cursor-pointer transition ${
+                formData.qualifiesForTIP ? "text-primaryGreen" : "text-errorRed"
+              }`}
+              // Override TIP Qualifications if necessary
+              onClick={() => {
+                setFormData((prev) => ({
+                  ...prev,
+                  qualifiesForTIP: !prev.qualifiesForTIP,
+                }));
+                setOverrideQualificationsActive(true);
+              }}
+            >
+              <img src={formData.qualifiesForTIP ? qualified : notQualified} />
+              <p className="text-xs">
+                {overrideQualificationsActive
+                  ? formData.qualifiesForTIP
+                    ? "Qualifications overridden"
+                    : "Qualifications overridden"
+                  : formData.qualifiesForTIP
+                  ? "Trapper qualifies for TIP"
+                  : formData.service === "MD-TNVR"
+                  ? "Trapper does not qualify for TIP (Click to override)"
+                  : "Service is not MD-TNVR"}
+              </p>
+            </div>
           ) : null}
         </div>
+
+        {/* Submission Button */}
         <div className="flex items-end gap-6">
+          {/* New Entry Submission Button */}
           {!initialData.id ? (
             <button
               type="submit"
@@ -706,6 +765,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
             </button>
           ) : (
             <>
+              {/* Record Update Buttons*/}
               <button
                 type="button"
                 className="h-[50px] py-2 px-4 font-bold border-2 border-primaryGreen text-primaryGreen rounded-lg hover:bg-green-100"

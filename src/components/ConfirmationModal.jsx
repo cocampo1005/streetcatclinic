@@ -13,7 +13,7 @@ export default function ConfirmationModal({
   return (
     <div className="fixed inset-0 bg-cyan-950 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl flex flex-col gap-6 shadow-lg py-12 px-16 max-w-lg w-full">
-        <div className="flex items-center text-red-500">
+        <div className="flex items-center text-errorRed">
           <DeleteIcon />
           <h2 className="text-3xl pl-2 text-primaryGray font-accent font-bold">
             {title}
@@ -31,7 +31,7 @@ export default function ConfirmationModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg"
+            className="bg-errorRed hover:bg-red-600 text-white py-2 px-4 rounded-lg"
           >
             Confirm
           </button>

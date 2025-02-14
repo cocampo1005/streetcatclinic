@@ -12,7 +12,7 @@ export default {
         secondaryGray: "#AFAFAF", // Mid Gray for Borders
         tertiaryGray: "#E5E7Eb", // Light Gray for Secondary Light Backgrounds
         labelGray: "#4b5563", // Gray for Bold Text
-        errorRed: "#F24822", // Red for Error Messages
+        errorRed: "#F04C4D", // Red for Error Messages
         successGreen: "#20A161", // Green for Success Messages
       },
       fontFamily: {

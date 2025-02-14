@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarIcon,
@@ -6,26 +6,44 @@ import {
   ClipboardIcon,
   DeleteIcon,
   EditIcon,
+  FilterIcon,
   GreenCheck,
   LocationIcon,
   NoCert,
   Plus,
   RedX,
   ServiceIcon,
+  SortIcon,
   TipIcon,
   TrapperIcon,
   VetIcon,
 } from "../components/svgs/Icons";
-import { useRecords } from "../contexts/RecordsContext";
 import ConfirmationModal from "../components/ConfirmationModal";
 import RecordModal from "../components/RecordModal";
+import { PDFViewer } from "@react-pdf/renderer";
+import { surgeriesPerformed } from "../data/dropdownOptions";
+import useRecords from "../hooks/useRecords";
 
 export default function RecordsPage() {
-  const { records, deleteRecord } = useRecords();
+  const { records, deleteRecord, isLoading, fetchNextPage, isLastPage } =
+    useRecords(5);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
+
+  // Filtering States
+  const [filterDate, setFilterDate] = useState({ month: "", year: "" });
+  const [filterSurgeries, setFilterSurgeries] = useState([]);
+  const [filterTIP, setFilterTIP] = useState("");
+
+  // Sorting States
+  const [sortedRecords, setSortedRecords] = useState(records);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  useEffect(() => {
+    console.log("Records:", records);
+  }, [records]);
 
   const handleRowClick = (record) => {
     setSelectedRecord(record);
@@ -36,6 +54,70 @@ export default function RecordsPage() {
     deleteRecord(selectedRecord.id);
     setDeleteModalOpen(false);
     setSelectedRecord(null);
+  };
+
+  // Function to filter records
+  const filteredRecords = records.filter((record) => {
+    const recordDate = new Date(record.intakePickupDate);
+    const recordMonth = recordDate.getMonth() + 1;
+    const recordYear = recordDate.getFullYear();
+
+    // Filter by selected month/year
+    if (
+      (filterDate.month && recordMonth !== Number(filterDate.month)) ||
+      (filterDate.year && recordYear !== Number(filterDate.year))
+    ) {
+      return false;
+    }
+
+    // Filter by surgeries performed
+    if (
+      filterSurgeries.length > 0 &&
+      !filterSurgeries.some((surgery) =>
+        record.surgeriesPerformed.includes(surgery)
+      )
+    ) {
+      return false;
+    }
+
+    // Filter by TIP Qualification
+    if (filterTIP && record.qualifiesForTIP !== (filterTIP === "yes")) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Sorting function
+  const handleSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+
+    const sortedData = [...records].sort((a, b) => {
+      let valA = a[key];
+      let valB = b[key];
+
+      // Handle numbers, dates, and strings separately
+      if (key === "intakePickupDate") {
+        valA = new Date(valA);
+        valB = new Date(valB);
+      } else if (!isNaN(valA) && !isNaN(valB)) {
+        valA = Number(valA);
+        valB = Number(valB);
+      } else {
+        valA = valA?.toString().toLowerCase();
+        valB = valB?.toString().toLowerCase();
+      }
+
+      if (valA > valB) return direction === "asc" ? 1 : -1;
+      if (valA < valB) return direction === "asc" ? -1 : 1;
+      return 0;
+    });
+
+    setSortedRecords(sortedData);
+    setSortConfig({ key, direction });
   };
 
   return (
@@ -118,7 +200,25 @@ export default function RecordsPage() {
                 <div className="flex items-center">
                   <TipIcon />
                   <p className="pl-2 pt-1">
-                    {selectedRecord.qualifiesForTIP ? "Yes" : "No"}
+                    {selectedRecord.qualifiesForTIP ? (
+                      selectedRecord.pdfUrl ? (
+                        <div className="flex gap-3">
+                          <p>Yes</p>
+                          <a href={selectedRecord.pdfUrl} target="_blank">
+                            <button className="bg-errorRed text-primaryWhite font-bold text-xs px-2 rounded hover:bg-primaryWhite hover:border hover:border-errorRed hover:text-errorRed">
+                              View PDF
+                            </button>
+                          </a>
+                        </div>
+                      ) : (
+                        <p>
+                          Yes -{" "}
+                          <span className="text-errorRed">No PDF Found</span>
+                        </p>
+                      )
+                    ) : (
+                      <p>No</p>
+                    )}
                   </p>
                 </div>
               </div>
@@ -244,6 +344,8 @@ export default function RecordsPage() {
             </div>
           </article>
         )}
+
+        {/* Table */}
         <div
           className={`w-full overflow-x-auto overflow-y-auto flex-grow ${
             selectedRecord
@@ -255,13 +357,50 @@ export default function RecordsPage() {
             <thead className="sticky top-0 z-10 bg-tertiaryGray rounded-xl border-b border-primaryWhite">
               <tr>
                 <th className="px-6 py-3 text-left rounded-tl-xl rounded-bl-xl">
-                  Cat ID
+                  <div className="flex items-center gap-1">
+                    Cat ID
+                    <button
+                      onClick={() => handleSort("catId")}
+                      className="cursor-pointer"
+                    >
+                      <SortIcon />
+                    </button>
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left">Intake Date</th>
-                <th className="px-6 py-3 text-left">Trapper</th>
-                <th className="px-6 py-3 text-left">Service</th>
+                <th
+                  className="px-6 py-3 text-left cursor-pointer"
+                  onClick={() => handleSort("intakePickupDate")}
+                >
+                  <div className="flex items-center gap-1">
+                    Intake Date <SortIcon />
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left cursor-pointer"
+                  onClick={() => handleSort("trapper.trapperId")}
+                >
+                  <div className="flex items-center gap-1">
+                    Trapper <SortIcon />
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left cursor-pointer"
+                  onClick={() => handleSort("service")}
+                >
+                  <div className="flex items-center gap-1">
+                    Service <SortIcon />
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left cursor-pointer"
+                  onClick={() => handleSort("qualifiesForTIP")}
+                >
+                  <div className="flex items-center gap-1">
+                    Qualified for TIP <SortIcon />
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left rounded-tr-xl rounded-br-xl">
-                  Qualified for TIP
+                  <FilterIcon />
                 </th>
               </tr>
             </thead>
@@ -296,6 +435,18 @@ export default function RecordsPage() {
               ))}
             </tbody>
           </table>
+          {/* Pagination Controls */}
+          <div className="flex justify-center py-4">
+            {!isLastPage && (
+              <button
+                onClick={fetchNextPage}
+                className="bg-primaryGreen hover:bg-secondaryGreen text-white py-2 px-4 rounded-lg"
+                disabled={isLoading}
+              >
+                {isLoading ? "Loading..." : "Load More"}
+              </button>
+            )}
+          </div>
         </div>
       </section>
     </>
