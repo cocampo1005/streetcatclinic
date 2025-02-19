@@ -3,14 +3,15 @@ import Papa from "papaparse";
 import { addDoc, collection, Timestamp } from "firebase/firestore";
 import { db, storage } from "../firebase-config";
 import { useTrappers } from "../contexts/TrappersContext";
-import { getDownloadURL, ref } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { generateMDASTIPFormPDF } from "../utils/pdfGenerator";
 
 const CsvUploader = () => {
   const { trappers } = useTrappers();
   const [file, setFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false); // Track upload state
-  const [uploadProgress, setUploadProgress] = useState(0); // Track upload percentage
-  const [message, setMessage] = useState(""); // Show messages to user
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [message, setMessage] = useState("");
 
   const formatDateForFirestore = (dateString) => {
     if (!dateString) return null;
@@ -53,12 +54,16 @@ const CsvUploader = () => {
         );
 
         setMessage("Cleaning and transforming data...");
-        // Clean and transform data
-        const cleanedData = await Promise.all(
-          filteredData.map(async (row) => {
-            // Extract Trapper IDand Name
-            const trapperField = row["Trapper/ Rescue ID and Address"] || "";
 
+        // Firestore collection reference
+        const collectionRef = collection(db, "records");
+
+        let completed = 0;
+
+        for (const row of filteredData) {
+          try {
+            // Extract Trapper Info
+            const trapperField = row["Trapper/ Rescue ID and Address"] || "";
             let trapperId = null;
             let trapperName = null;
 
@@ -69,7 +74,6 @@ const CsvUploader = () => {
               trapperName = trapperField.trim();
             }
 
-            // Set Trapper to full object if found in trappers list
             const trapper =
               trapperId && trappers.find((t) => t.trapperId === trapperId)
                 ? trappers.find((t) => t.trapperId === trapperId)
@@ -78,7 +82,7 @@ const CsvUploader = () => {
                     name: trapperName || "Unknown",
                   };
 
-            // Check if record qualified for TIP
+            // Check if record qualifies for TIP
             const qualifiesForTIP = row["Qualifies for TIP?"]
               ?.trim()
               .toLowerCase()
@@ -86,41 +90,45 @@ const CsvUploader = () => {
 
             let pdfUrl = null;
 
-            // If qualified, assign PDF URL from storage
-            if (qualifiesForTIP) {
-              const sanitizedCatId = row["Cat ID"].trim().replace(/\//g, "_"); // Replace "/" with "_" and trim whitespace
-              const fileName = `${sanitizedCatId}_MDAS_TIP_Form.pdf`;
-              console.log(`Looking for file: pdfForms/${fileName}`);
-              const pdfRef = ref(storage, `pdfForms/${fileName}`);
-              try {
-                pdfUrl = await getDownloadURL(pdfRef); // Fetch the PDF URL
-              } catch (error) {
-                console.error(
-                  `Error fetching PDF for Cat ID ${row["Cat ID"]}:`,
-                  error
-                );
-              }
+            // Extract and sanitize `catId`
+            let sanitizedCatId = row["Cat ID"].trim().replace(/\//g, "_");
+
+            // Extract date information from Cat ID
+            const match = row["Cat ID"]
+              .trim()
+              .match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*-\s*(\d+)/);
+            if (!match)
+              throw new Error(`Invalid Cat ID format: ${row["Cat ID"]}`);
+
+            let [, month, day, year, id] = match;
+
+            // Convert 2-digit year to 4-digit format
+            if (year.length === 2) {
+              year = `20${year}`;
             }
 
-            // Extract and reformat catNumber from Cat ID
+            // Format month and day with leading zeros
+            const formattedMonth = month.padStart(2, "0");
+            const formattedDay = day.padStart(2, "0");
+
+            // Update `sanitizedCatId`
+            sanitizedCatId = `${formattedMonth}_${formattedDay}_${year}- ${id}`;
+
+            // Extract and reformat catNumber
             let catNumber = null;
             if (row["Cat ID"]) {
-              const trimmedCatId = row["Cat ID"].trim(); // Trim extra spaces before processing
-
-              // Matches both "10/23/24- 37" and "10/30/2024- 2"
-              const match = trimmedCatId.match(
+              const trimmedCatId = row["Cat ID"].trim();
+              const catMatch = trimmedCatId.match(
                 /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})- (\d+)$/
               );
 
-              if (match) {
-                let [, month, day, year, number] = match;
+              if (catMatch) {
+                let [, month, day, year, number] = catMatch;
 
-                // Convert 2-digit year to 4-digit year (assume 20XX)
                 if (year.length === 2) {
                   year = `20${year}`;
                 }
 
-                // Ensure number suffix is always 3 digits (pad with leading zeros)
                 const paddedNumber = number.padStart(3, "0"); // "2" → "002", "12" → "012"
 
                 catNumber = parseInt(
@@ -133,7 +141,59 @@ const CsvUploader = () => {
               }
             }
 
-            return {
+            // If the record qualifies for TIP, generate PDF immediately
+            if (qualifiesForTIP) {
+              try {
+                // Transform raw CSV row into the correct format before generating PDF
+                const entryData = {
+                  trapper,
+                  intakePickupDate: row["Intake, SX & Pickup DATE"] || "",
+                  service: row.Service || "",
+                  catId: row["Cat ID"] || "N/A",
+                  catName: row["RESCUE- Cat Name"] || "Unnamed",
+                  breed: row.Breed || "",
+                  color: row["Color"]
+                    ? row["Color"].split(",").map((c) => c.trim())
+                    : [],
+                  estimatedAge: row["Estimated Age"] || "Unknown",
+                  sex: row["Surgery Performed"].includes("Female")
+                    ? "Female"
+                    : row["Surgery Performed"].includes("Male")
+                    ? "Male"
+                    : "",
+                  crossStreet: row["TNR-Cross Street Trapped"] || "",
+                  crossZip: row["TNR- Zip Code Trapped"] || "",
+                };
+
+                // Generate PDF for row using condensed data
+                const pdfBlob = await generateMDASTIPFormPDF(entryData);
+
+                if (!pdfBlob) {
+                  throw new Error(
+                    `⚠ PDF generation returned null for Cat ID: ${row["Cat ID"]}`
+                  );
+                }
+
+                console.log(
+                  `✅ PDF generated successfully for Cat ID: ${row["Cat ID"]}`
+                );
+
+                const fileName = `${sanitizedCatId}_MDAS_TIP_Form.pdf`;
+                const pdfPath = `pdfs/${year}-${formattedMonth}/${fileName}`;
+                const pdfRef = ref(storage, pdfPath);
+
+                await uploadBytes(pdfRef, pdfBlob);
+                pdfUrl = await getDownloadURL(pdfRef);
+              } catch (error) {
+                console.error(
+                  `❌ PDF generation error for ${row["Cat ID"]}:`,
+                  error
+                );
+              }
+            }
+
+            // Create Firestore record
+            const recordData = {
               trapper,
               intakePickupDate: row["Intake, SX & Pickup DATE"],
               intakeTimestamp: formatDateForFirestore(
@@ -142,7 +202,7 @@ const CsvUploader = () => {
                 ? Timestamp.fromDate(
                     formatDateForFirestore(row["Intake, SX & Pickup DATE"])
                   )
-                : null, // Convert to Firestore Timestamp
+                : null,
               service: row.Service || "",
               catId: row["Cat ID"].trim(),
               catNumber,
@@ -151,9 +211,8 @@ const CsvUploader = () => {
               microchip: row.Microchip === "TRUE",
               microchipNumber: row["Microchip #"] || "",
               rabies: row.Rabies === "TRUE",
-              rabiesWithoutCertificate: row["TNR Rabies Given- No Certificate"]
-                ? row["TNR Rabies Given- No Certificate"] === "TRUE"
-                : false,
+              rabiesWithoutCertificate:
+                row["TNR Rabies Given- No Certificate"] === "TRUE",
               FVRCP: row.FVRCP === "TRUE",
               FeLVFIV: row["FeLV/FIV"] || "N/A",
               weight: row["Wt (lb)"] || "",
@@ -184,36 +243,26 @@ const CsvUploader = () => {
               veterinarian: row.Veterinarian || "Toscano-17161",
               outcome: row.Outcome || "",
               qualifiesForTIP,
-              pdfGenerated: qualifiesForTIP,
               pdfUrl,
             };
-          })
-        );
 
-        // Transfer cleaned data to Firestore
-        try {
-          const collectionRef = collection(db, "records");
-          let completed = 0;
-
-          for (const item of cleanedData) {
-            console.log("Uploading:", item.catId, item);
-            await addDoc(collectionRef, item);
+            await addDoc(collectionRef, recordData);
             completed++;
             setUploadProgress(
-              Math.round((completed / cleanedData.length) * 100)
+              Math.round((completed / filteredData.length) * 100)
             );
+
             console.log(
-              `Successfully uploaded entry with Cat ID: ${item.catId}`
+              `✅ Successfully uploaded entry with Cat ID: ${row["Cat ID"]}`
             );
+          } catch (error) {
+            console.error(`❌ Error processing entry:`, error);
           }
-          setMessage("Upload complete!");
-        } catch (error) {
-          console.error("Error uploading data:", error.message, error);
-          setMessage("An error occurred. Check the console for details.");
-        } finally {
-          setIsUploading(false);
-          setUploadProgress(0);
         }
+
+        setMessage("Upload complete!");
+        setIsUploading(false);
+        setUploadProgress(0);
       },
       error: function (error) {
         console.error("Error parsing CSV:", error);

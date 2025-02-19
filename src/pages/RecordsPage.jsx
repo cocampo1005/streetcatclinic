@@ -20,30 +20,62 @@ import {
 } from "../components/svgs/Icons";
 import ConfirmationModal from "../components/ConfirmationModal";
 import RecordModal from "../components/RecordModal";
-import { PDFViewer } from "@react-pdf/renderer";
 import { surgeriesPerformed } from "../data/dropdownOptions";
 import useRecords from "../hooks/useRecords";
 
 export default function RecordsPage() {
-  const { records, deleteRecord, isLoading, fetchNextPage, isLastPage } =
-    useRecords(5);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
 
   // Filtering States
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filterDate, setFilterDate] = useState({ month: "", year: "" });
-  const [filterSurgeries, setFilterSurgeries] = useState([]);
-  const [filterTIP, setFilterTIP] = useState("");
+  const [filterSurgery, setFilterSurgery] = useState("");
+  const [filtersApplied, setFiltersApplied] = useState(false);
 
-  // Sorting States
-  const [sortedRecords, setSortedRecords] = useState(records);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  // Default Records (Initial Load)
+  const {
+    records: defaultRecords,
+    isLoading: loadingDefault,
+    fetchFirstPage,
+    fetchNextPage,
+    isLastPage: isLastPageDefault,
+    deleteRecord,
+    toggleSortOrder,
+    sortOrder,
+  } = useRecords(5);
 
-  useEffect(() => {
-    console.log("Records:", records);
-  }, [records]);
+  // Filtered Records when "Apply Filters" is Clicked
+  const {
+    records: filteredRecords,
+    isLoading: loadingFiltered,
+    fetchFilteredRecords,
+    isLastPage: isLastPageFiltered,
+  } = useRecords(5);
+
+  // Determine Which Records to Show
+  const records = filtersApplied ? filteredRecords : defaultRecords;
+  const isLoading = filtersApplied ? loadingFiltered : loadingDefault;
+  const isLastPage = filtersApplied ? isLastPageFiltered : isLastPageDefault;
+
+  // Apply selected filters
+  const applyFilters = () => {
+    setFiltersApplied(true);
+    fetchFilteredRecords({
+      month: filterDate.month,
+      year: filterDate.year,
+      surgery: filterSurgery || null,
+    });
+  };
+
+  const resetFilters = () => {
+    setFiltersApplied(false);
+    setFilterDate({ month: "", year: "" });
+    setFilterSurgery("");
+    fetchFirstPage(); // Reload default records again
+  };
 
   const handleRowClick = (record) => {
     setSelectedRecord(record);
@@ -54,70 +86,6 @@ export default function RecordsPage() {
     deleteRecord(selectedRecord.id);
     setDeleteModalOpen(false);
     setSelectedRecord(null);
-  };
-
-  // Function to filter records
-  const filteredRecords = records.filter((record) => {
-    const recordDate = new Date(record.intakePickupDate);
-    const recordMonth = recordDate.getMonth() + 1;
-    const recordYear = recordDate.getFullYear();
-
-    // Filter by selected month/year
-    if (
-      (filterDate.month && recordMonth !== Number(filterDate.month)) ||
-      (filterDate.year && recordYear !== Number(filterDate.year))
-    ) {
-      return false;
-    }
-
-    // Filter by surgeries performed
-    if (
-      filterSurgeries.length > 0 &&
-      !filterSurgeries.some((surgery) =>
-        record.surgeriesPerformed.includes(surgery)
-      )
-    ) {
-      return false;
-    }
-
-    // Filter by TIP Qualification
-    if (filterTIP && record.qualifiesForTIP !== (filterTIP === "yes")) {
-      return false;
-    }
-
-    return true;
-  });
-
-  // Sorting function
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-
-    const sortedData = [...records].sort((a, b) => {
-      let valA = a[key];
-      let valB = b[key];
-
-      // Handle numbers, dates, and strings separately
-      if (key === "intakePickupDate") {
-        valA = new Date(valA);
-        valB = new Date(valB);
-      } else if (!isNaN(valA) && !isNaN(valB)) {
-        valA = Number(valA);
-        valB = Number(valB);
-      } else {
-        valA = valA?.toString().toLowerCase();
-        valB = valB?.toString().toLowerCase();
-      }
-
-      if (valA > valB) return direction === "asc" ? 1 : -1;
-      if (valA < valB) return direction === "asc" ? -1 : 1;
-      return 0;
-    });
-
-    setSortedRecords(sortedData);
-    setSortConfig({ key, direction });
   };
 
   return (
@@ -199,7 +167,7 @@ export default function RecordsPage() {
                 </div>
                 <div className="flex items-center">
                   <TipIcon />
-                  <p className="pl-2 pt-1">
+                  <div className="pl-2 pt-1">
                     {selectedRecord.qualifiesForTIP ? (
                       selectedRecord.pdfUrl ? (
                         <div className="flex gap-3">
@@ -219,7 +187,7 @@ export default function RecordsPage() {
                     ) : (
                       <p>No</p>
                     )}
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -360,7 +328,7 @@ export default function RecordsPage() {
                   <div className="flex items-center gap-1">
                     Cat ID
                     <button
-                      onClick={() => handleSort("catId")}
+                      onClick={toggleSortOrder}
                       className="cursor-pointer"
                     >
                       <SortIcon />
@@ -369,7 +337,7 @@ export default function RecordsPage() {
                 </th>
                 <th
                   className="px-6 py-3 text-left cursor-pointer"
-                  onClick={() => handleSort("intakePickupDate")}
+                  onClick={() => console.log("intakePickupDate")}
                 >
                   <div className="flex items-center gap-1">
                     Intake Date <SortIcon />
@@ -377,7 +345,7 @@ export default function RecordsPage() {
                 </th>
                 <th
                   className="px-6 py-3 text-left cursor-pointer"
-                  onClick={() => handleSort("trapper.trapperId")}
+                  onClick={() => console.log("trapper.trapperId")}
                 >
                   <div className="flex items-center gap-1">
                     Trapper <SortIcon />
@@ -385,7 +353,7 @@ export default function RecordsPage() {
                 </th>
                 <th
                   className="px-6 py-3 text-left cursor-pointer"
-                  onClick={() => handleSort("service")}
+                  onClick={() => console.log("service")}
                 >
                   <div className="flex items-center gap-1">
                     Service <SortIcon />
@@ -393,17 +361,105 @@ export default function RecordsPage() {
                 </th>
                 <th
                   className="px-6 py-3 text-left cursor-pointer"
-                  onClick={() => handleSort("qualifiesForTIP")}
+                  onClick={() => console.log("qualifiesForTIP")}
                 >
                   <div className="flex items-center gap-1">
                     Qualified for TIP <SortIcon />
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left rounded-tr-xl rounded-br-xl">
-                  <FilterIcon />
+                <th
+                  className="px-6 py-3 text-left cursor-pointer"
+                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Filter</span>
+                    <FilterIcon />
+                  </div>
                 </th>
               </tr>
             </thead>
+
+            {/* Collapsible Filter Bar */}
+            {isFiltersOpen && (
+              <thead className="transition-all duration-300">
+                <tr>
+                  <th colSpan="6" className="p-4 bg-white">
+                    <div className="flex gap-4 items-center">
+                      <label>Month</label>
+                      <select
+                        onChange={(e) =>
+                          setFilterDate({
+                            ...filterDate,
+                            month: e.target.value,
+                          })
+                        }
+                        value={filterDate.month}
+                      >
+                        <option value="">All</option>
+                        {[...Array(12)].map((_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            {new Date(0, i).toLocaleString("default", {
+                              month: "long",
+                            })}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label>Year</label>
+                      <select
+                        onChange={(e) =>
+                          setFilterDate({ ...filterDate, year: e.target.value })
+                        }
+                        value={filterDate.year}
+                      >
+                        <option value="">All</option>
+                        {[2023, 2024, 2025].map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label>Surgery</label>
+                      <select
+                        onChange={(e) => setFilterSurgery(e.target.value)}
+                        value={filterSurgery}
+                      >
+                        <option value="">All</option>
+                        {surgeriesPerformed.map((surgery) => (
+                          <option key={surgery} value={surgery}>
+                            {surgery}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        onClick={() => {
+                          if (!filterDate.month || !filterDate.year) {
+                            alert(
+                              "Please select a month and year before filtering by surgery."
+                            );
+                            return;
+                          }
+                          applyFilters();
+                        }}
+                        className="bg-primaryGreen text-white px-4 py-2 rounded-lg"
+                        disabled={isLoading}
+                      >
+                        Apply
+                      </button>
+                      <button
+                        onClick={resetFilters}
+                        className="bg-gray-400 text-white px-4 py-2 rounded-lg"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+            )}
+
             <tbody className="bg-white divide-y divide-gray-300 overflow-y-auto max-h-[calc(100vh-350px)]">
               {records?.map((record) => (
                 <tr
@@ -444,6 +500,25 @@ export default function RecordsPage() {
                 disabled={isLoading}
               >
                 {isLoading ? "Loading..." : "Load More"}
+              </button>
+            )}
+
+            {/* Optional: Show All Button */}
+            {filtersApplied && !isLastPage && (
+              <button
+                onClick={() =>
+                  fetchFilteredRecords(
+                    {
+                      month: filterDate.month,
+                      year: filterDate.year,
+                      surgery: filterSurgery || null,
+                    },
+                    true // Sets showAll to true
+                  )
+                } // ✅ Pass the correct filter state
+                className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg ml-4"
+              >
+                Show All
               </button>
             )}
           </div>
