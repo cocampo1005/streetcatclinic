@@ -35,39 +35,33 @@ export default function RecordsPage() {
   const [filterSurgery, setFilterSurgery] = useState("");
   const [filtersApplied, setFiltersApplied] = useState(false);
 
-  // Default Records (Initial Load)
+  // Fetch Records Hook
   const {
-    records: defaultRecords,
-    isLoading: loadingDefault,
+    records,
+    isLoading,
+    sortOrder,
+    toggleSortOrder,
     fetchFirstPage,
     fetchNextPage,
-    isLastPage: isLastPageDefault,
-    deleteRecord,
-    toggleSortOrder,
-    sortOrder,
-  } = useRecords(5);
-
-  // Filtered Records when "Apply Filters" is Clicked
-  const {
-    records: filteredRecords,
-    isLoading: loadingFiltered,
+    isLastPage,
     fetchFilteredRecords,
-    isLastPage: isLastPageFiltered,
+    deleteRecord,
   } = useRecords(5);
-
-  // Determine Which Records to Show
-  const records = filtersApplied ? filteredRecords : defaultRecords;
-  const isLoading = filtersApplied ? loadingFiltered : loadingDefault;
-  const isLastPage = filtersApplied ? isLastPageFiltered : isLastPageDefault;
 
   // Apply selected filters
   const applyFilters = () => {
+    if (!filterDate.month || !filterDate.year) {
+      alert("Please select a month and year before filtering.");
+      return;
+    }
+
     setFiltersApplied(true);
-    fetchFilteredRecords({
+    const filters = {
       month: filterDate.month,
       year: filterDate.year,
       surgery: filterSurgery || null,
-    });
+    };
+    fetchFilteredRecords(filters);
   };
 
   const resetFilters = () => {
@@ -75,6 +69,20 @@ export default function RecordsPage() {
     setFilterDate({ month: "", year: "" });
     setFilterSurgery("");
     fetchFirstPage(); // Reload default records again
+  };
+
+  // Handle showing all filtered results
+  const handleShowAll = () => {
+    if (filtersApplied) {
+      fetchFilteredRecords(
+        {
+          month: filterDate.month,
+          year: filterDate.year,
+          surgery: filterSurgery || null,
+        },
+        true // showAll flag
+      );
+    }
   };
 
   const handleRowClick = (record) => {
@@ -336,39 +344,31 @@ export default function RecordsPage() {
                   </div>
                 </th>
                 <th
-                  className="px-6 py-3 text-left cursor-pointer"
+                  className="px-6 py-3 text-left"
                   onClick={() => console.log("intakePickupDate")}
                 >
-                  <div className="flex items-center gap-1">
-                    Intake Date <SortIcon />
-                  </div>
+                  Intake Date
                 </th>
                 <th
-                  className="px-6 py-3 text-left cursor-pointer"
+                  className="px-6 py-3 text-left"
                   onClick={() => console.log("trapper.trapperId")}
                 >
-                  <div className="flex items-center gap-1">
-                    Trapper <SortIcon />
-                  </div>
+                  Trapper
                 </th>
                 <th
-                  className="px-6 py-3 text-left cursor-pointer"
+                  className="px-6 py-3 text-left"
                   onClick={() => console.log("service")}
                 >
-                  <div className="flex items-center gap-1">
-                    Service <SortIcon />
-                  </div>
+                  Service
                 </th>
                 <th
-                  className="px-6 py-3 text-left cursor-pointer"
+                  className="px-6 py-3 text-left"
                   onClick={() => console.log("qualifiesForTIP")}
                 >
-                  <div className="flex items-center gap-1">
-                    Qualified for TIP <SortIcon />
-                  </div>
+                  TIP
                 </th>
                 <th
-                  className="px-6 py-3 text-left cursor-pointer"
+                  className="px-6 py-3 text-left cursor-pointer rounded-tr-xl rounded-br-xl"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 >
                   <div className="flex items-center gap-1">
@@ -435,12 +435,6 @@ export default function RecordsPage() {
 
                       <button
                         onClick={() => {
-                          if (!filterDate.month || !filterDate.year) {
-                            alert(
-                              "Please select a month and year before filtering by surgery."
-                            );
-                            return;
-                          }
                           applyFilters();
                         }}
                         className="bg-primaryGreen text-white px-4 py-2 rounded-lg"
@@ -506,16 +500,7 @@ export default function RecordsPage() {
             {/* Optional: Show All Button */}
             {filtersApplied && !isLastPage && (
               <button
-                onClick={() =>
-                  fetchFilteredRecords(
-                    {
-                      month: filterDate.month,
-                      year: filterDate.year,
-                      surgery: filterSurgery || null,
-                    },
-                    true // Sets showAll to true
-                  )
-                } // ✅ Pass the correct filter state
+                onClick={handleShowAll}
                 className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg ml-4"
               >
                 Show All
