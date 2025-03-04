@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Backups" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 22.36">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        stroke-width: 0px;
+      }
+    </style>
+  </defs>
+  <g id="Trapper_Icon" data-name="Trapper Icon">
+    <g>
+      <circle class="cls-1" cx="9.86" cy="6.14" r="5.04"/>
+      <path class="cls-1" d="M17.47,17.47c0,3.02-3.42,3.79-7.65,3.79s-7.65-.78-7.65-3.79,3.42-7.13,7.65-7.13,7.65,4.11,7.65,7.13Z"/>
+    </g>
+  </g>
+  <g id="Trapper_Icon-2" data-name="Trapper Icon">
+    <g>
+      <circle class="cls-1" cx="18.43" cy="10.78" r="2.91"/>
+      <path class="cls-1" d="M22.83,17.32c0,1.74-1.98,2.19-4.42,2.19s-4.42-.45-4.42-2.19,1.98-4.12,4.42-4.12,4.42,2.37,4.42,4.12Z"/>
+    </g>
+  </g>
+</svg>

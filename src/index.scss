@@ -36,6 +36,17 @@ input[type="email"] {
   }
 }
 
+input[type="password"] {
+  @apply w-full px-3 py-2 text-sm bg-primaryWhite text-primaryGray border border-secondaryGray rounded-lg;
+
+  &:focus {
+    @apply outline-none ring-1 ring-primaryGreen border-primaryGreen;
+  }
+  &:disabled {
+    @apply bg-gray-100 border-gray-300;
+  }
+}
+
 textarea {
   @apply w-full px-3 py-2 text-sm bg-primaryWhite text-primaryGray border border-secondaryGray rounded-lg;
   resize: none;

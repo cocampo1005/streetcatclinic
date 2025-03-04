@@ -501,7 +501,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
             <button
               type="button"
               onClick={onClose}
-              className="py-2 px-4 font-bold border-2 border-primaryGreen text-primaryGreen rounded-lg hover:bg-green-100"
+              className="py-2 px-4 font-bold border-2 border-primaryGreen text-primaryGreen rounded-lg hover:bg-cyan-100"
             >
               Cancel
             </button>

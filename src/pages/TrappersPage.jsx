@@ -49,7 +49,9 @@ export default function TrappersPage() {
   };
 
   const handleRowClick = (trapper) => {
-    setSelectedTrapperId(trapper.id);
+    setSelectedTrapperId((prevId) =>
+      prevId === trapper.id ? null : trapper.id
+    );
   };
 
   return (

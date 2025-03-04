@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarIcon,
   CatIcon,
   ClipboardIcon,
   DeleteIcon,
+  DownloadIcon,
   EditIcon,
   FilterIcon,
   GreenCheck,
@@ -20,7 +21,6 @@ import {
 } from "../components/svgs/Icons";
 import ConfirmationModal from "../components/ConfirmationModal";
 import RecordModal from "../components/RecordModal";
-import { surgeriesPerformed } from "../data/dropdownOptions";
 import useRecords from "../hooks/useRecords";
 
 export default function RecordsPage() {
@@ -39,13 +39,14 @@ export default function RecordsPage() {
   const {
     records,
     isLoading,
-    sortOrder,
+    isExporting,
     toggleSortOrder,
     fetchFirstPage,
     fetchNextPage,
     isLastPage,
     fetchFilteredRecords,
     deleteRecord,
+    exportToCSV,
   } = useRecords(5);
 
   // Apply selected filters
@@ -85,9 +86,27 @@ export default function RecordsPage() {
     }
   };
 
+  // Handle export to CSV
+  const handleExportCSV = () => {
+    if (!filterDate.month || !filterDate.year) {
+      alert("Please select a month and year before exporting.");
+      return;
+    }
+
+    const filters = {
+      month: filterDate.month,
+      year: filterDate.year,
+      surgery: filterSurgery || null,
+    };
+
+    exportToCSV(filters);
+  };
+
   const handleRowClick = (record) => {
-    setSelectedRecord(record);
-    setSelectedRowId(record.id);
+    setSelectedRecord((prevRecord) =>
+      prevRecord?.id === record.id ? null : record
+    );
+    setSelectedRowId((prevId) => (prevId === record.id ? null : record.id));
   };
 
   const confirmDelete = () => {
@@ -100,13 +119,25 @@ export default function RecordsPage() {
     <>
       <header className="w-full flex justify-between border-b-2 border-tertiaryGray p-8">
         <h1 className="font-accent font-bold text-4xl">Records</h1>
-        <Link
-          to={"/"}
-          className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg"
-        >
-          <Plus />
-          <span>Add Entry</span>
-        </Link>
+        <div className="flex gap-4">
+          {filtersApplied && (
+            <button
+              onClick={handleExportCSV}
+              disabled={isExporting || !filtersApplied}
+              className="flex gap-2 bg-primaryWhite border-2 border-primaryGreen hover:bg-cyan-100 text-primaryGreen font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <DownloadIcon />
+              {isExporting ? "Exporting..." : "Export CSV"}
+            </button>
+          )}
+          <Link
+            to={"/"}
+            className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg"
+          >
+            <Plus />
+            <span>Add Entry</span>
+          </Link>
+        </div>
       </header>
 
       {isDeleteModalOpen && (
@@ -413,14 +444,21 @@ export default function RecordsPage() {
                         value={filterDate.year}
                       >
                         <option value="">All</option>
-                        {[2023, 2024, 2025].map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))}
+                        {[...Array(new Date().getFullYear() - 2024 + 1)].map(
+                          (_, i) => {
+                            const year = 2024 + i;
+                            return (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            );
+                          }
+                        )}
                       </select>
 
-                      <label>Surgery</label>
+                      {/* Omitted Option to Filter by Surgery */}
+
+                      {/* <label>Surgery</label>
                       <select
                         onChange={(e) => setFilterSurgery(e.target.value)}
                         value={filterSurgery}
@@ -431,20 +469,20 @@ export default function RecordsPage() {
                             {surgery}
                           </option>
                         ))}
-                      </select>
+                      </select> */}
 
                       <button
                         onClick={() => {
                           applyFilters();
                         }}
-                        className="bg-primaryGreen text-white px-4 py-2 rounded-lg"
+                        className="bg-primaryGreen hover:bg-secondaryGreen text-white px-4 py-2 rounded-lg"
                         disabled={isLoading}
                       >
                         Apply
                       </button>
                       <button
                         onClick={resetFilters}
-                        className="bg-gray-400 text-white px-4 py-2 rounded-lg"
+                        className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg"
                       >
                         Reset
                       </button>
@@ -501,7 +539,7 @@ export default function RecordsPage() {
             {filtersApplied && !isLastPage && (
               <button
                 onClick={handleShowAll}
-                className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg ml-4"
+                className="bg-primaryWhite border-2 border-primaryGreen hover:bg-cyan-100 text-primaryGreen font-bold py-2 px-4 rounded-lg ml-4"
               >
                 Show All
               </button>

@@ -964,7 +964,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 {/* Record Update Buttons*/}
                 <button
                   type="button"
-                  className="h-[50px] py-2 px-4 font-bold border-2 border-primaryGreen text-primaryGreen rounded-lg hover:bg-green-100"
+                  className="h-[50px] py-2 px-4 font-bold border-2 border-primaryGreen text-primaryGreen rounded-lg hover:bg-cyan-100"
                   onClick={onClose}
                 >
                   Cancel
