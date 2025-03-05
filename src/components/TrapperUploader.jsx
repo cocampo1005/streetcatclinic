@@ -66,15 +66,15 @@ const TrapperUploader = () => {
             phone: row.PHONE?.trim() || "",
             email: row.EMAIL?.trim() || "",
             code: row.CODE?.trim() || "",
-            signature: "", // Default value for signature
+            signature: "",
           };
         });
 
         try {
-          const collectionRef = collection(db, "trappers"); // Reference to the "records" collection
+          const collectionRef = collection(db, "trappers");
 
           for (const item of cleanedData) {
-            await addDoc(collectionRef, item); // Automatically generate a unique document ID
+            await addDoc(collectionRef, item);
             console.log(
               `Successfully uploaded trapper: ${item.trapperId} - ${item.name}`
             );

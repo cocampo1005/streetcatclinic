@@ -125,7 +125,14 @@ export default function AccountsPage() {
   };
 
   if (!currentUser || currentUser.role !== "admin") {
-    return <p className="text-red-500">Access Denied: Admins Only</p>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-2xl text-errorRed font-bold">
+          Access Denied: Admins Only
+        </p>
+        ;
+      </div>
+    );
   }
 
   return (

@@ -15,6 +15,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import PrivateRoute from "./pages/PrivateRoute";
 import AccountsPage from "./pages/AccountsPage";
+import SettingsPage from "./pages/SettingsPage";
 
 function App() {
   return (
@@ -57,12 +58,16 @@ function MainLayout() {
             element={<PrivateRoute element={<FormsPage />} />}
           />
           <Route
-            path="/profile"
-            element={<PrivateRoute element={<ProfilePage />} />}
-          />
-          <Route
             path="/accounts"
             element={<PrivateRoute element={<AccountsPage />} />}
+          />
+          <Route
+            path="/settings"
+            element={<PrivateRoute element={<SettingsPage />} />}
+          />
+          <Route
+            path="/profile"
+            element={<PrivateRoute element={<ProfilePage />} />}
           />
         </Routes>
       </main>
