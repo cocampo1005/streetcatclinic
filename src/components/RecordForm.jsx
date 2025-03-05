@@ -12,6 +12,7 @@ import useRecords from "../hooks/useRecords";
 import { generateMDASTIPFormPDF } from "../utils/pdfGenerator";
 import { db, storage } from "../firebase-config";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { useDosageCalculation } from "../hooks/useDosageCalculations";
 
 // Helper function to format date with slashes (MM/DD/YYYY)
 const formatDateWithSlashes = (date) => {
@@ -192,28 +193,19 @@ export default function RecordForm({ initialData = {}, onClose }) {
     }
   }, [formData.surgeriesPerformed]);
 
-  // Calculate dosage based on weight and drug
+  // Use the hook to calculate dosage based on weight and drug
+  const calculatedDosage = useDosageCalculation(
+    formData.weight,
+    formData.additionalDrug
+  );
+
+  // Update formData when calculatedDosage changes
   useEffect(() => {
-    const calculateDosage = (weight, drug) => {
-      if (!weight || !drug) return "";
-
-      const sanitizedDrug = drug.replace(/\s+/g, "");
-      const closestEntry = dosageChart.reduce((prev, curr) =>
-        Math.abs(curr.wt - weight) < Math.abs(prev.wt - weight) ? curr : prev
-      );
-
-      return closestEntry[sanitizedDrug] || "No dosage available";
-    };
-
-    const calculatedDosage = calculateDosage(
-      formData.weight,
-      formData.additionalDrug
-    );
     setFormData((prev) => ({
       ...prev,
       dosage: calculatedDosage,
     }));
-  }, [formData.weight, formData.additionalDrug]);
+  }, [calculatedDosage]);
 
   // Check if the record qualifies for TIP
   useEffect(() => {

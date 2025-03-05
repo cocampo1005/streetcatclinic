@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase-config";
 import { DeleteIcon, EditIcon, Plus } from "../components/svgs/Icons";
+import DosageChartSettings from "../components/DosageChartSettings";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -202,8 +203,8 @@ export default function SettingsPage() {
       <header className="w-full flex justify-between border-b-2 border-tertiaryGray p-8">
         <h1 className="font-accent font-bold text-4xl">Settings</h1>
       </header>
-
       <section className="p-8">
+        <h2 className="text-2xl font-bold mb-6">Dropdown Options</h2>
         <div className="grid grid-cols-2 gap-8">
           {categories.map((category) => (
             <div key={category} className="border rounded-xl overflow-hidden">
@@ -368,6 +369,7 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
+        <DosageChartSettings />
       </section>
     </>
   );
