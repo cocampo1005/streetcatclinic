@@ -73,17 +73,17 @@ export default function NavPanel() {
         >
           <div className="w-8 h-8 md:w-10 md:h-10 bg-primaryWhite flex justify-center items-center rounded-full">
             <p className="text-sm md:text-xl text-primaryGreen font-bold">
-              {`${user.firstName.charAt(0).toUpperCase()}${user.lastName
+              {`${user?.firstName.charAt(0).toUpperCase()}${user?.lastName
                 .charAt(0)
                 .toUpperCase()}`}
             </p>
           </div>
           <div className="hidden md:block">
-            <p className="text-sm md:text-lg">{`${user.firstName
+            <p className="text-sm md:text-lg">{`${user?.firstName
               .charAt(0)
-              .toUpperCase()}. ${user.lastName}`}</p>
+              .toUpperCase()}. ${user?.lastName}`}</p>
             <p className="text-xs md:text-sm text-secondaryGray">
-              {user.title}
+              {user?.title}
             </p>
           </div>
         </NavLink>

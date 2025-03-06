@@ -250,7 +250,6 @@ export default function RecordForm({ initialData = {}, onClose }) {
         const docRef = await createRecord(formData);
         recordRef = docRef.id;
         setModalMessage("Record created successfully!");
-        setModalType("success");
 
         // If the entry qualifies for TIP, generate and upload the PDF
         if (formData.qualifiesForTIP) {

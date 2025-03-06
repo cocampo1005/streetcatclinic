@@ -8,14 +8,18 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase-config";
+import { useAuth } from "./AuthContext";
 
 const TrappersContext = createContext();
 
 export const TrappersProvider = ({ children }) => {
   const [trappers, setTrappers] = useState([]);
+  const { user } = useAuth();
 
   // Fetch trappers from Firestore
   useEffect(() => {
+    if (!user) return;
+
     const fetchTrappers = async () => {
       try {
         const trappersSnapshot = await getDocs(collection(db, "trappers"));
@@ -38,7 +42,7 @@ export const TrappersProvider = ({ children }) => {
     };
 
     fetchTrappers();
-  }, []);
+  }, [user]);
 
   // Add a new trapper
   const createTrapper = async (trapperData) => {

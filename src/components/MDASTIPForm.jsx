@@ -12,20 +12,21 @@ import miamiDadeLogo from "../assets/images/miami-dade-county-logo.png";
 import mdAdoptLogo from "../assets/images/md-adopt-logo.png";
 import toscanoSignature from "../assets/images/toscano-signature.png";
 
+// Use absolute paths from the public folder
 Font.register({
   family: "Roboto",
   fonts: [
-    { src: "/src/assets/fonts/roboto.ttf", fontWeight: "normal" },
-    { src: "/src/assets/fonts/roboto-bold.ttf", fontWeight: "bold" },
-    { src: "/src/assets/fonts/roboto-italic.ttf", fontStyle: "italic" },
+    { src: "/assets/fonts/roboto.ttf", fontWeight: "normal" },
+    { src: "/assets/fonts/roboto-bold.ttf", fontWeight: "bold" },
+    { src: "/assets/fonts/roboto-italic.ttf", fontStyle: "italic" },
   ],
 });
 
 Font.register({
   family: "Verdana",
   fonts: [
-    { src: "/src/assets/fonts/verdana.ttf", fontWeight: "normal" },
-    { src: "/src/assets/fonts/verdana-bold.ttf", fontWeight: "bold" },
+    { src: "/assets/fonts/verdana.ttf", fontWeight: "normal" },
+    { src: "/assets/fonts/verdana-bold.ttf", fontWeight: "bold" },
   ],
 });
 
