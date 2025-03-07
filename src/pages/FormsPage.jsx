@@ -2,9 +2,12 @@ import React, { useEffect, useState } from "react";
 import {
   CalendarIcon,
   CatIcon,
+  Checkmark,
   DownloadIcon,
   FilterIcon,
-  TipIcon,
+  FormIcon,
+  LocationIcon,
+  PDFIcon,
   TrapperIcon,
 } from "../components/svgs/Icons";
 import useForms from "../hooks/useForms";
@@ -30,7 +33,7 @@ export default function FormsPage() {
     fetchFilteredForms,
     exportBatchPDFs,
     exportSelectedPDFs,
-  } = useForms(10);
+  } = useForms(5);
 
   // Initial fetch on component mount
   useEffect(() => {
@@ -106,8 +109,18 @@ export default function FormsPage() {
     exportSelectedPDFs(selectedForms);
   };
 
+  // Modified to prevent form details toggling when checkbox is clicked or control key is pressed
   const handleRowClick = (form, event) => {
-    // Check if shift key was pressed for multi-select
+    // If the click is on the checkbox or its parent label, don't do anything here
+    if (
+      event.target.type === "checkbox" ||
+      event.target.classList.contains("checkbox") ||
+      event.target.closest(".custom-checkbox")
+    ) {
+      return;
+    }
+
+    // For multi-selection with control keys
     if (event.ctrlKey || event.metaKey) {
       setSelectedForms((prev) => {
         const isSelected = prev.some((f) => f.id === form.id);
@@ -118,7 +131,7 @@ export default function FormsPage() {
         }
       });
     } else {
-      // Single select behavior
+      // Regular click - toggle form details
       setSelectedForm((prevForm) => (prevForm?.id === form.id ? null : form));
       setSelectedRowId((prevId) => (prevId === form.id ? null : form.id));
     }
@@ -156,31 +169,23 @@ export default function FormsPage() {
             </button>
           )}
           {selectedForms.length > 0 && (
-            <>
-              <button
-                onClick={handleExportSelected}
-                disabled={isExporting}
-                className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <DownloadIcon />
-                {isExporting
-                  ? "Exporting..."
-                  : `Export Selected (${selectedForms.length})`}
-              </button>
-              <button
-                onClick={() => setSelectedForms([])}
-                className="flex gap-2 bg-gray-400 hover:bg-gray-500 text-white py-2 px-4 rounded-lg"
-              >
-                Clear Selection
-              </button>
-            </>
+            <button
+              onClick={handleExportSelected}
+              disabled={isExporting}
+              className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <DownloadIcon />
+              {isExporting
+                ? "Exporting..."
+                : `Export Selected (${selectedForms.length})`}
+            </button>
           )}
         </div>
       </header>
 
       <section className="p-8 max-h-screen flex flex-col gap-8">
         {selectedForm && (
-          <article className="rounded-xl flex flex-col flex-shrink-0 gap-4 p-6 bg-gray-50 border border-gray-200">
+          <article className="flex flex-col flex-shrink-0 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CatIcon />
@@ -190,48 +195,33 @@ export default function FormsPage() {
                 href={selectedForm.pdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-2 px-4 rounded-lg"
               >
-                <DownloadIcon />
-                <span>View PDF</span>
+                <PDFIcon />
               </a>
             </div>
-
-            <div className="flex flex-col">
-              <div className="flex items-center">
-                <CalendarIcon />
-                <p className="pl-2">
-                  {selectedForm.intakePickupDate || "Unknown Date"}
-                </p>
+            <div className="grid grid-cols-2">
+              <div>
+                <div className="flex items-center">
+                  <CalendarIcon />
+                  <p className="pl-2">
+                    {selectedForm.generatedDate || "Unknown Date"}
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <TrapperIcon />
+                  <p className="pl-2">{selectedForm.trapperName}</p>
+                </div>
               </div>
-              <div className="flex items-center">
-                <TrapperIcon />
-                <p className="pl-2">{selectedForm.trapperName}</p>
+              <div>
+                <div className="flex items-center">
+                  <FormIcon />
+                  <p className="pl-2">{selectedForm.fileName}</p>
+                </div>
+                <div className="flex items-center">
+                  <LocationIcon />
+                  <p className="pl-2">{`${selectedForm.crossStreet}, ${selectedForm.crossZip}`}</p>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-2">
-              <p>
-                <strong>Generated:</strong> {selectedForm.generatedDate}
-              </p>
-              <p>
-                <strong>File:</strong> {selectedForm.fileName}
-              </p>
-              {selectedForm.color && selectedForm.color.length > 0 && (
-                <p>
-                  <strong>Color:</strong> {selectedForm.color.join(", ")}
-                </p>
-              )}
-              {selectedForm.sex && (
-                <p>
-                  <strong>Sex:</strong> {selectedForm.sex}
-                </p>
-              )}
-              {selectedForm.age && (
-                <p>
-                  <strong>Age:</strong> {selectedForm.age}
-                </p>
-              )}
             </div>
           </article>
         )}
@@ -254,7 +244,18 @@ export default function FormsPage() {
             <thead className="sticky top-0 z-10 bg-tertiaryGray rounded-xl border-b border-primaryWhite">
               <tr>
                 <th className="w-16 px-3 py-3 text-center rounded-tl-xl rounded-bl-xl">
-                  <div className="flex items-center justify-center">Select</div>
+                  <div className="flex items-center justify-center">
+                    Select
+                    {selectedForms.length > 0 && (
+                      <button
+                        onClick={() => setSelectedForms([])}
+                        className="ml-2 bg-primaryWhite hover:bg-errorRed text-primaryGray hover:text-primaryWhite rounded-md w-5 h-5 flex items-center justify-center text-xs font-bold"
+                        title="Clear all selections"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left">
                   <div className="flex items-center gap-1">Cat ID</div>
@@ -265,7 +266,7 @@ export default function FormsPage() {
                   className="px-6 py-3 text-left cursor-pointer rounded-tr-xl rounded-br-xl"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 >
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center hover:text-primaryGreen justify-end gap-1">
                     <span>Filter</span>
                     <FilterIcon />
                   </div>
@@ -346,25 +347,29 @@ export default function FormsPage() {
                   key={form.id}
                   className={`group hover:bg-gray-50 cursor-pointer ${
                     selectedRowId === form.id ? "bg-tertiaryGreen" : ""
-                  } ${isFormSelected(form.id) ? "bg-blue-100" : ""}`}
+                  } ${isFormSelected(form.id) ? "bg-cyan-100" : ""}`}
                   onClick={(e) => handleRowClick(form, e)}
                 >
                   <td className="px-3 py-4 text-center">
-                    <input
-                      type="checkbox"
-                      checked={isFormSelected(form.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        setSelectedForms((prev) => {
-                          if (e.target.checked) {
-                            return [...prev, form];
-                          } else {
-                            return prev.filter((f) => f.id !== form.id);
-                          }
-                        });
-                      }}
-                      className="h-4 w-4"
-                    />
+                    <label className="custom-checkbox">
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={isFormSelected(form.id)}
+                        onChange={(e) => {
+                          e.stopPropagation(); // Prevent row click event
+                          setSelectedForms(
+                            (prev) =>
+                              isFormSelected(form.id)
+                                ? prev.filter((f) => f.id !== form.id) // Deselect
+                                : [...prev, form] // Select
+                          );
+                        }}
+                      />
+                      <span className="checkbox">
+                        {isFormSelected(form.id) && <Checkmark />}
+                      </span>
+                    </label>
                   </td>
                   <td className="px-6 py-4 font-bold">{form.catId}</td>
                   <td className="px-6 py-4">{form.generatedDate}</td>
@@ -374,11 +379,10 @@ export default function FormsPage() {
                       href={form.pdfUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite py-1 px-3 rounded"
+                      className="inline-flex items-center"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <DownloadIcon />
-                      <span>PDF</span>
+                      <PDFIcon size="small" />
                     </a>
                   </td>
                 </tr>

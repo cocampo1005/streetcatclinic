@@ -7,6 +7,7 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
+// Create a new user in Firebase Auth and Firestore
 exports.createNewUser = onCall(async (request) => {
   // Destructure data and auth from the request
   const { data, auth } = request;
@@ -123,5 +124,46 @@ exports.createNewUser = onCall(async (request) => {
   } catch (error) {
     logger.error("Function Execution Error:", error);
     throw new HttpsError("internal", "User creation failed", error.message);
+  }
+});
+
+// Delete a user from Firebase Auth and Firestore
+exports.deleteFirebaseUser = onCall(async (request) => {
+  const { data, auth } = request;
+
+  // Verify that the caller is authenticated
+  if (!auth) {
+    logger.error("Unauthenticated call to deleteFirebaseUser");
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  // Get the caller's user record to check their role
+  const callerUid = auth.uid;
+  const callerDoc = await admin
+    .firestore()
+    .collection("users")
+    .doc(callerUid)
+    .get();
+
+  if (!callerDoc.exists || callerDoc.data().role !== "admin") {
+    logger.error("Permission denied: User is not an admin", { uid: callerUid });
+    throw new HttpsError("permission-denied", "Only admins can delete users");
+  }
+
+  // Validate the UID to delete
+  if (!data.uid) {
+    logger.error("Missing user UID to delete");
+    throw new HttpsError("invalid-argument", "Missing user UID to delete");
+  }
+
+  // Delete the user from Firebase Auth
+  try {
+    logger.info(`Attempting to delete user: ${data.uid}`);
+    await admin.auth().deleteUser(data.uid);
+    logger.info(`Successfully deleted user: ${data.uid}`);
+    return { success: true };
+  } catch (error) {
+    logger.error(`Error deleting user: ${data.uid}`, error);
+    throw new HttpsError("internal", error.message);
   }
 });

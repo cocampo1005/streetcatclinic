@@ -3,6 +3,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase-config";
 import { useAuth } from "../contexts/AuthContext";
 import { DeleteIcon, Plus } from "../components/svgs/Icons";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function DosageChartSettings() {
   const { user } = useAuth();
@@ -15,6 +16,10 @@ export default function DosageChartSettings() {
 
   // State to manage adding a new weight row
   const [newWeight, setNewWeight] = useState("");
+
+  // State for confirmation modal
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState(null);
 
   // Fetch dosage chart from Firestore
   useEffect(() => {
@@ -81,6 +86,12 @@ export default function DosageChartSettings() {
     }
   };
 
+  // Function to open the confirmation modal
+  const openDeleteModal = (rowIndex) => {
+    setRowToDelete(rowIndex);
+    setDeleteModalOpen(true);
+  };
+
   // Handle removing a weight row
   const handleRemoveWeight = async (rowIndex) => {
     try {
@@ -90,6 +101,8 @@ export default function DosageChartSettings() {
       await updateDoc(docRef, { chart: updatedChart });
 
       setDosageChart(updatedChart);
+      setDeleteModalOpen(false);
+      setRowToDelete(null);
     } catch (err) {
       console.error("Error removing weight row:", err);
     }
@@ -120,7 +133,7 @@ export default function DosageChartSettings() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Dosage Chart Settings</h1>
+      <h1 className="text-3xl font-bold mb-6">Dosage Chart Settings (mm)</h1>
 
       {/* Dosage Chart Table */}
       <div className="overflow-x-auto border rounded-2xl">
@@ -128,8 +141,17 @@ export default function DosageChartSettings() {
           <thead>
             <tr className="bg-gray-100">
               {columns.map((column) => (
-                <th key={column} className="p-3 text-left border-b capitalize">
-                  {column === "wt" ? "Weight" : column}
+                <th
+                  key={column}
+                  className="p-3 text-center border-b capitalize"
+                >
+                  {column === "wt" ? (
+                    <>
+                      Weight (<span className="lowercase">lb</span>)
+                    </>
+                  ) : (
+                    column
+                  )}
                 </th>
               ))}
               <th className="p-3 text-left border-b">Actions</th>
@@ -137,9 +159,12 @@ export default function DosageChartSettings() {
           </thead>
           <tbody>
             {dosageChart.map((row, rowIndex) => (
-              <tr key={row.wt} className="hover:bg-gray-50 text-center">
+              <tr key={row.wt} className="hover:bg-gray-50">
                 {columns.map((column) => (
-                  <td key={`${row.wt}-${column}`} className="p-3 border-b">
+                  <td
+                    key={`${row.wt}-${column}`}
+                    className="p-3 border-b text-center"
+                  >
                     {editingCell?.row === rowIndex &&
                     editingCell?.column === column ? (
                       <input
@@ -171,7 +196,7 @@ export default function DosageChartSettings() {
                 ))}
                 <td className="p-3 border-b">
                   <button
-                    onClick={() => handleRemoveWeight(rowIndex)}
+                    onClick={() => openDeleteModal(rowIndex)}
                     className="text-secondaryGray hover:text-errorRed p-1 rounded"
                   >
                     <DeleteIcon />
@@ -207,6 +232,30 @@ export default function DosageChartSettings() {
           Add Weight Row
         </button>
       </div>
+
+      {/* Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={() => handleRemoveWeight(rowToDelete)}
+          title="Delete Weight Row"
+          message={
+            <>
+              <p>
+                Are you sure you want to delete this weight row? This action
+                cannot be undone.
+              </p>
+              <p className="pl-4 py-2">
+                <strong>
+                  Weight:{" "}
+                  {rowToDelete !== null ? dosageChart[rowToDelete].wt : ""} lb
+                </strong>
+              </p>
+            </>
+          }
+        />
+      )}
     </div>
   );
 }

@@ -7,7 +7,6 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import { deleteUser } from "firebase/auth";
 import ConfirmationModal from "../components/ConfirmationModal";
 import AccountModal from "../components/AccountModal";
 import { useAuth } from "../contexts/AuthContext";
@@ -59,8 +58,6 @@ export default function AccountsPage() {
 
   // Saves a new user or updates an existing one
   const handleSaveAccount = async (accountData) => {
-    console.log("handleSaveAccount called with:", accountData);
-
     // Ensure user is logged in
     if (!auth.currentUser) {
       console.error("User is not authenticated. Cannot create a new user.");
@@ -68,13 +65,10 @@ export default function AccountsPage() {
       return;
     }
 
-    console.log("Authenticated User UID:", auth.currentUser.uid);
-
     if (selectedAccount) {
       // Editing an existing user
       const userRef = doc(db, "users", selectedAccount.id);
       try {
-        console.log("Updating existing user:", selectedAccount.id);
         await updateDoc(userRef, accountData);
         fetchAccounts();
       } catch (error) {
@@ -87,9 +81,7 @@ export default function AccountsPage() {
         const functions = getFunctions();
         const createNewUser = httpsCallable(functions, "createNewUser");
         // ✅ Explicitly ensure auth context is available
-        console.log("Calling function as user:", currentUser.uid);
         const idToken = await auth.currentUser.getIdToken();
-        console.log("✅ ID Token:", idToken);
 
         // ✅ Include the token in the request data
         const result = await createNewUser({
@@ -97,7 +89,6 @@ export default function AccountsPage() {
           idToken, // Manually pass token
         });
 
-        console.log("User created:", result.data);
         fetchAccounts();
       } catch (error) {
         console.error("Error creating user:", error);
@@ -111,29 +102,29 @@ export default function AccountsPage() {
   // Deletes an account from Firestore and Firebase Auth
   const confirmDelete = async () => {
     try {
+      // Get the user's Firebase auth token
+      const idToken = await auth.currentUser.getIdToken();
+
+      // Call the Cloud Function to delete the Firebase Auth user
+      const functions = getFunctions();
+      const deleteFirebaseUser = httpsCallable(functions, "deleteFirebaseUser");
+
+      await deleteFirebaseUser({
+        uid: selectedAccountDetails.uid,
+      });
+
+      // After successfully deleting the Auth user, delete the Firestore document
       await deleteDoc(doc(db, "users", selectedAccountDetails.id));
-      const firebaseUser = auth.currentUser;
-      if (firebaseUser && firebaseUser.uid === selectedAccountDetails.uid) {
-        await deleteUser(firebaseUser);
-      }
+
+      // Update UI
       fetchAccounts();
       setSelectedAccountId(null);
     } catch (error) {
       console.error("Error deleting user:", error);
+      alert(`Failed to delete user: ${error.message}`);
     }
     setDeleteModalOpen(false);
   };
-
-  if (!currentUser || currentUser.role !== "admin") {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-2xl text-errorRed font-bold">
-          Access Denied: Admins Only
-        </p>
-        ;
-      </div>
-    );
-  }
 
   return (
     <>
@@ -233,7 +224,9 @@ export default function AccountsPage() {
                 <th className="px-6 py-3 text-left">First Name</th>
                 <th className="px-6 py-3 text-left">Last Name</th>
                 <th className="px-6 py-3 text-left">Role</th>
-                <th className="px-6 py-3 text-left">Title</th>
+                <th className="px-6 py-3 text-left rounded-tr-xl rounded-br-xl">
+                  Title
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-300 overflow-y-auto max-h-[calc(100vh-350px)]">

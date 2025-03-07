@@ -41,8 +41,6 @@ export default function AccountModal({ isOpen, onClose, onSave, initialData }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Form data:", formData);
-
     if (!validateForm()) return;
     onSave(formData);
   };

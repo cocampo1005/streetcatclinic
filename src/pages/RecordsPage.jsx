@@ -374,35 +374,15 @@ export default function RecordsPage() {
                     </button>
                   </div>
                 </th>
-                <th
-                  className="px-6 py-3 text-left"
-                  onClick={() => console.log("intakePickupDate")}
-                >
-                  Intake Date
-                </th>
-                <th
-                  className="px-6 py-3 text-left"
-                  onClick={() => console.log("trapper.trapperId")}
-                >
-                  Trapper
-                </th>
-                <th
-                  className="px-6 py-3 text-left"
-                  onClick={() => console.log("service")}
-                >
-                  Service
-                </th>
-                <th
-                  className="px-6 py-3 text-left"
-                  onClick={() => console.log("qualifiesForTIP")}
-                >
-                  TIP
-                </th>
+                <th className="px-6 py-3 text-left">Intake Date</th>
+                <th className="px-6 py-3 text-left">Trapper</th>
+                <th className="px-6 py-3 text-left">Service</th>
+                <th className="px-6 py-3 text-left">TIP</th>
                 <th
                   className="px-6 py-3 text-left cursor-pointer rounded-tr-xl rounded-br-xl"
                   onClick={() => setIsFiltersOpen(!isFiltersOpen)}
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center hover:text-primaryGreen gap-1">
                     <span>Filter</span>
                     <FilterIcon />
                   </div>
@@ -519,6 +499,7 @@ export default function RecordsPage() {
                   <td className="px-6 py-4">
                     {record.qualifiesForTIP ? "Yes" : "No"}
                   </td>
+                  <td></td>
                 </tr>
               ))}
             </tbody>

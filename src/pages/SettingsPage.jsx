@@ -213,7 +213,7 @@ export default function SettingsPage() {
                 onClick={() => toggleCategory(category)}
                 className="flex justify-between items-center p-4 bg-tertiaryGray cursor-pointer hover:bg-gray-200"
               >
-                <h2 className="text-xl font-semibold capitalize">
+                <h2 className="text-lg font-semibold capitalize">
                   {category.replace(/([A-Z])/g, " $1").toLowerCase()}
                 </h2>
                 <svg

@@ -3,7 +3,6 @@ import RecordForm from "./RecordForm";
 import { EditIcon } from "./svgs/Icons";
 
 export default function RecordModal({ initialData, onClose }) {
-  console.log(initialData);
   return (
     <div className="fixed inset-0 bg-cyan-950 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl py-8 px-16">

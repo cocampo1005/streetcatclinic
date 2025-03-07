@@ -102,7 +102,6 @@ const currDate = new Date().toLocaleDateString("en-US");
 // Define the PDF structure
 const MDASTIPForm = ({ entryData }) => (
   <Document>
-    {console.log(entryData)}
     <Page size="A4" style={styles.page}>
       {/* Header Section */}
       <View style={styles.headerContainer}>

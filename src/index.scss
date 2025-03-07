@@ -80,7 +80,7 @@ select {
 
 /* Styling for Custom Checkboxes */
 .custom-checkbox {
-  @apply inline-block relative;
+  @apply inline-block relative cursor-pointer;
 }
 
 .checkbox {

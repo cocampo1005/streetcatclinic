@@ -164,8 +164,6 @@ export default function RecordForm({ initialData = {}, onClose }) {
       [name]: updatedValue,
       intakeTimestamp: updatedIntakeTimestamp,
     }));
-    console.log("Field changed:", name, value);
-    console.log("Form data:", formData);
   };
 
   // Trapper change logic
@@ -281,7 +279,6 @@ export default function RecordForm({ initialData = {}, onClose }) {
             // Store the PDF URL in Firestore
             await updateRecord(recordRef, { pdfUrl });
 
-            console.log("✅ TIP PDF generated and uploaded:", pdfUrl);
             setPdfStatus("completed");
             setModalMessage("✅ PDF successfully generated and uploaded!");
           } catch (pdfError) {
@@ -945,7 +942,13 @@ export default function RecordForm({ initialData = {}, onClose }) {
             {!initialData.id ? (
               <button
                 type="submit"
-                className="flex gap-3 items-center text-lg bg-primaryGreen text-primaryWhite px-6 py-2 rounded-lg hover:bg-secondaryGreen active:bg-primaryGreen"
+                // className="flex gap-3 items-center text-lg bg-primaryGreen text-primaryWhite px-6 py-2 rounded-lg hover:bg-secondaryGreen active:bg-primaryGreen"
+                className={`flex items-center text-lg gap-3 px-6 py-2 rounded-lg
+                  ${
+                    formData.trapper && formData.service
+                      ? "bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite"
+                      : "bg-gray-300 text-primaryWhite cursor-not-allowed"
+                  }`}
               >
                 <NewEntryIcon />
                 Submit New Entry

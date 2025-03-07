@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   collection,
   query,
@@ -9,8 +9,7 @@ import {
   where,
   Timestamp,
 } from "firebase/firestore";
-import { ref, listAll, getMetadata, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../firebase-config";
+import { db } from "../firebase-config";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
