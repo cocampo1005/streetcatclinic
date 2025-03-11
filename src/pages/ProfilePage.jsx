@@ -5,6 +5,7 @@ import { LockIcon, LogoutIcon } from "../components/svgs/Icons";
 import { useAuth } from "../contexts/AuthContext";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase-config";
+import TrapperUploader from "../components/TrapperUploader";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -124,6 +125,14 @@ export default function ProfilePage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-2xl font-semibold mb-6">Import Data</h2>
             <CsvUploader />
+          </div>
+        </section> */}
+
+        {/* Trapper Uploader Section */}
+        {/* <section className="p-8 w-full md:w-1/3">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-semibold mb-6">Upload Trappers</h2>
+            <TrapperUploader />
           </div>
         </section> */}
       </div>

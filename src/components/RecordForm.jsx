@@ -6,7 +6,6 @@ import qualified from "../assets/icons/qualified-icon.png";
 import notQualified from "../assets/icons/not-qualified-icon.png";
 import { useTrappers } from "../contexts/TrappersContext";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
-import { dosageChart } from "../data/dosageChart";
 import { NewEntryIcon } from "./svgs/NavIcons";
 import useRecords from "../hooks/useRecords";
 import { generateMDASTIPFormPDF } from "../utils/pdfGenerator";
@@ -949,6 +948,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
                       ? "bg-primaryGreen hover:bg-secondaryGreen text-primaryWhite"
                       : "bg-gray-300 text-primaryWhite cursor-not-allowed"
                   }`}
+                disabled={!formData.trapper || !formData.service}
               >
                 <NewEntryIcon />
                 Submit New Entry
@@ -966,6 +966,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 <button
                   type="submit"
                   className="h-[50px] py-2 px-4 rounded-lg bg-primaryGreen text-white hover:bg-secondaryGreen"
+                  disabled={!formData.trapper || !formData.service}
                 >
                   Update Record
                 </button>

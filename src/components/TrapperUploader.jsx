@@ -11,28 +11,58 @@ const TrapperUploader = () => {
   };
 
   function parseAddress(combinedAddress) {
-    // Regular expression to parse addresses with optional unit/apartment
-    const addressRegex =
-      /^(.*?),\s*(?:(Apt\.?|Unit|#|Suite)\s*\w+,\s*)?(.*?),\s*(\w{2})\s*(\d{5})$/;
-    const match = combinedAddress.match(addressRegex);
-
-    if (match) {
+    if (!combinedAddress) {
       return {
-        street: match[1].trim(), // e.g., "400 Sunny Isles Blvd."
-        apartment: match[2] ? `${match[2].trim()} ${match[3].trim()}` : "", // e.g., "Apt. 303" or ""
-        city: match[4].trim(), // e.g., "Sunny Isles Beach"
-        state: match[5].trim(), // e.g., "FL"
-        zip: match[6].trim(), // e.g., "33160"
-      };
-    } else {
-      console.warn("Could not parse address:", combinedAddress);
-      return {
-        street: combinedAddress.trim(), // Fallback: store full address in `street`
+        street: "",
         apartment: "",
         city: "",
         state: "",
         zip: "",
       };
+    }
+
+    // Check for addresses with apartment/unit info
+    // This matches patterns like: "street, apt info, city, state zip"
+    const aptRegex =
+      /^(.*?),\s*((?:Apt\.?|Unit|#|Suite)\s*[^,]*),\s*(.*?),\s*(\w{2})\s*(\d{5})$/i;
+
+    // For addresses without apartment info: "street, city, state zip"
+    const simpleRegex = /^(.*?),\s*(.*?),\s*(\w{2})\s*(\d{5})$/;
+
+    let match = combinedAddress.match(aptRegex);
+
+    if (match) {
+      // Address with apartment info
+      return {
+        street: match[1].trim(),
+        apartment: match[2].trim(),
+        city: match[3].trim(),
+        state: match[4].trim(),
+        zip: match[5].trim(),
+      };
+    } else {
+      // Try the simple pattern without apartment
+      match = combinedAddress.match(simpleRegex);
+
+      if (match) {
+        return {
+          street: match[1].trim(),
+          apartment: "",
+          city: match[2].trim(),
+          state: match[3].trim(),
+          zip: match[4].trim(),
+        };
+      } else {
+        // If no pattern matches, log a warning and return the raw address
+        console.warn("Could not parse address:", combinedAddress);
+        return {
+          street: combinedAddress.trim(),
+          apartment: "",
+          city: "",
+          state: "",
+          zip: "",
+        };
+      }
     }
   }
 
@@ -52,10 +82,25 @@ const TrapperUploader = () => {
         const cleanedData = data.map((row) => {
           const parsedAddress = parseAddress(row.ADDRESS || "");
 
+          // Name parsing logic
+          const nameParts = row.NAME?.trim().split(/\s+/) || [];
+          let firstName = "";
+          let lastName = "";
+
+          if (nameParts.length === 1) {
+            firstName = nameParts[0];
+          } else if (nameParts.length === 2) {
+            [firstName, lastName] = nameParts;
+          } else {
+            firstName = nameParts.slice(0, -1).join(" "); // All but the last word
+            lastName = nameParts[nameParts.length - 1]; // Last word as last name
+          }
+
           return {
             qualifies: row.TIP === "Yes",
             trapperId: row["TRAPPER NUMBER"]?.trim() || "",
-            name: row.NAME?.trim() || "",
+            firstName: firstName || "",
+            lastName: lastName || "",
             address: {
               street: parsedAddress.street,
               apartment: parsedAddress.apartment,

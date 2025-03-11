@@ -32,8 +32,6 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
   const MAX_FILE_SIZE_MB = 2;
   const ALLOWED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
 
-  console.log("Initial Data:", initialData);
-
   const getNextTrapperId = (trappers) => {
     if (trappers.length === 0) return "1"; // Default to "1" if no trappers exist
     const lastTrapper = trappers[trappers.length - 1]; // Get the last trapper
@@ -44,7 +42,6 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
   useEffect(() => {
     if (!initialData.trapperId) {
       const nextTrapperId = getNextTrapperId(trappers);
-      console.log(initialData);
 
       setFormData((prevData) => ({
         ...prevData,
@@ -167,7 +164,6 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data before validation:", formData);
 
     // Final validation before submission
     const newErrors = {};
@@ -195,7 +191,7 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
     }
 
     if (Object.keys(newErrors).length > 0) {
-      console.log("Validation errors:", newErrors);
+      console.error("Validation errors:", newErrors);
       setErrors(newErrors);
       return;
     }
@@ -205,18 +201,12 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
 
       // If a file was uploaded, upload it to Firebase Storage
       if (formData.signature instanceof File) {
-        console.log(
-          "Uploading file to Firebase Storage:",
-          formData.signature.name
-        );
         const storageRef = ref(
           storage,
           `signatures/${Date.now()}_${formData.signature.name}`
         );
         const snapshot = await uploadBytes(storageRef, formData.signature);
-        console.log("File uploaded, Firebase Storage snapshot:", snapshot);
         signatureUrl = await getDownloadURL(snapshot.ref);
-        console.log("Generated file URL:", signatureUrl);
       }
 
       // Save the formData to Firestore, replacing the file with its URL
@@ -224,10 +214,8 @@ const TrapperModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
         ...formData,
         signature: signatureUrl,
       };
-      console.log("Data to save to Firestore:", formDataToSave);
 
       await onSave(formDataToSave);
-      console.log("Data saved to Firestore successfully!");
       onClose();
     } catch (error) {
       console.error("Error uploading file or saving data:", error);
