@@ -314,7 +314,7 @@ export default function RecordsPage() {
                       </div>
                       <div className="flex flex-col gap-2">
                         <p>
-                          <strong>Surgeries: </strong>
+                          <strong>Services: </strong>
                           {`${selectedRecord.surgeriesPerformed.join(", ")}`}
                         </p>
                         <p>

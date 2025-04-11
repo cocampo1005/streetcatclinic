@@ -12,6 +12,7 @@ import { generateMDASTIPFormPDF } from "../utils/pdfGenerator";
 import { db, storage } from "../firebase-config";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useDosageCalculation } from "../hooks/useDosageCalculations";
+import { validateTIPEligibility } from "../utils/validateTIPEligibility";
 
 // Helper function to format date with slashes (MM/DD/YYYY)
 const formatDateWithSlashes = (date) => {
@@ -49,6 +50,12 @@ export default function RecordForm({ initialData = {}, onClose }) {
   const [modalType, setModalType] = useState("success");
   const [pdfStatus, setPdfStatus] = useState("idle");
 
+  // Stores the default date and catId in sessionStorage
+  const defaultDate =
+    sessionStorage.getItem("intakePickupDate") ||
+    formatDateWithSlashes(new Date());
+  const defaultCatId = sessionStorage.getItem("catId") || `${defaultDate}- `;
+
   // Override TIP qualifications state
   const [overrideQualificationsActive, setOverrideQualificationsActive] =
     useState(false);
@@ -56,15 +63,14 @@ export default function RecordForm({ initialData = {}, onClose }) {
   // Form data state
   const [formData, setFormData] = useState({
     trapper: initialData.trapper || "",
-    intakePickupDate:
-      initialData.intakePickupDate || formatDateWithSlashes(new Date()),
+    intakePickupDate: initialData.intakePickupDate || defaultDate,
     intakeTimestamp: initialData.intakeTimestamp
       ? initialData.intakeTimestamp instanceof Timestamp
-        ? initialData.intakeTimestamp // Already a Firestore Timestamp, use as is
-        : Timestamp.fromDate(new Date(initialData.intakeTimestamp)) // Convert only if not a Timestamp
-      : Timestamp.fromDate(new Date()), // Default to now
+        ? initialData.intakeTimestamp
+        : Timestamp.fromDate(new Date(initialData.intakeTimestamp))
+      : Timestamp.fromDate(new Date(defaultDate)),
     service: initialData.service || "",
-    catId: initialData.catId || `${formatDateWithSlashes(new Date())}- `,
+    catId: initialData.catId || defaultCatId,
     catNumber: initialData.catNumber || null,
     crossStreet: initialData.crossStreet || "",
     crossZip: initialData.crossZip || "",
@@ -86,7 +92,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
     surgeriesPerformed: initialData.surgeriesPerformed || [],
     surgicalNotes: initialData.surgicalNotes || "",
     veterinarian: initialData.veterinarian || "Toscano-17161",
-    outcome: initialData.outcome || "",
+    outcome: initialData.outcome || "Alive",
     qualifiesForTIP: false,
   });
 
@@ -153,9 +159,19 @@ export default function RecordForm({ initialData = {}, onClose }) {
     let updatedValue = type === "checkbox" ? checked : value;
     let updatedIntakeTimestamp = formData.intakeTimestamp;
 
-    // If changing intakePickupDate, update intakeTimestamp automatically
+    // If changing intakePickupDate, update intakeTimestamp and sessionStorage values
     if (name === "intakePickupDate") {
-      updatedIntakeTimestamp = new Date(value);
+      sessionStorage.setItem("intakePickupDate", value);
+      const newCatId = `${value}- `;
+      sessionStorage.setItem("catId", newCatId);
+
+      setFormData((prev) => ({
+        ...prev,
+        intakePickupDate: value,
+        intakeTimestamp: new Date(value),
+        catId: newCatId,
+      }));
+      return;
     }
 
     setFormData((prev) => ({
@@ -237,66 +253,95 @@ export default function RecordForm({ initialData = {}, onClose }) {
       let recordRef;
 
       if (initialData && initialData.id) {
-        // Update record
+        // Update an existing ecord
         await updateRecord(initialData.id, formData);
         recordRef = initialData.id;
         setModalMessage("Record updated successfully!");
         setModalType("success");
       } else {
-        // Create new record
-        const docRef = await createRecord(formData);
-        recordRef = docRef.id;
-        setModalMessage("Record created successfully!");
+        // Create a new record
+        let pdfUrl = null;
 
-        // If the entry qualifies for TIP, generate and upload the PDF
         if (formData.qualifiesForTIP) {
+          const validationErrors = validateTIPEligibility(formData);
+          if (validationErrors.length > 0) {
+            setModalType("error");
+            setModalMessage(
+              <>
+                <p className="text-lg text-center font-bold mb-2">
+                  ❌ Cannot generate TIP PDF
+                </p>
+                <p className="text-center">
+                  The following fields are required for TIP PDF generation:
+                </p>
+                <p>{validationErrors.join("\n")}</p>
+                <p className="text-center mt-2">
+                  Please fill out all required fields and try again.
+                </p>
+              </>
+            );
+            setIsModalOpen(true);
+            setPdfStatus("error");
+            return;
+          }
+
           setPdfStatus("generating");
           setModalMessage("📄 Generating TIP PDF...");
 
           try {
-            // Generate the PDF
             const pdfBlob = await generateMDASTIPFormPDF(formData);
+            if (!pdfBlob) throw new Error("PDF blob is null");
 
             setPdfStatus("uploading");
             setModalMessage("⬆ Uploading TIP PDF to Firebase...");
 
-            // Format storage path
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, "0");
-
-            // Ensure `catId` is safe for file storage
             const safeCatId = formData.catId.replace(/\//g, "_");
 
             const pdfPath = `pdfs/${year}-${month}/${safeCatId}_MDAS_TIP_Form.pdf`;
             const pdfRef = ref(storage, pdfPath);
             await uploadBytes(pdfRef, pdfBlob);
-
-            // Get the URL for the uploaded PDF
-            const pdfUrl = await getDownloadURL(pdfRef);
-
-            // Store the PDF URL in Firestore
-            await updateRecord(recordRef, { pdfUrl });
+            pdfUrl = await getDownloadURL(pdfRef);
 
             setPdfStatus("completed");
             setModalMessage("✅ PDF successfully generated and uploaded!");
           } catch (pdfError) {
             console.error("❌ Error generating/uploading PDF:", pdfError);
             setPdfStatus("error");
-            setModalMessage("❌ Failed to generate PDF. Please try again.");
+            setModalMessage(
+              "❌ Failed to generate PDF. Please fix the error and try again."
+            );
             setModalType("error");
             return;
           }
         }
 
+        // ✅ Create the record last (with or without pdfUrl)
+        setModalMessage("💾 Saving record...");
+        const docRef = await createRecord({
+          ...formData,
+          ...(pdfUrl ? { pdfUrl } : {}),
+        });
+
+        setModalMessage("✅ Record created successfully!");
+        setModalType("success");
+
+        // Store the default date and catId in sessionStorage
+        const resetDate =
+          sessionStorage.getItem("intakePickupDate") ||
+          formatDateWithSlashes(new Date());
+        const resetCatId = sessionStorage.getItem("catId") || `${resetDate}- `;
+
         // Reset fields to defaults
         setFormData((prev) => ({
           ...prev,
           trapper: "",
-          intakePickupDate: formatDateWithSlashes(new Date()),
-          intakeTimestamp: Timestamp.fromDate(new Date()),
+          intakePickupDate: resetDate,
+          intakeTimestamp: Timestamp.fromDate(new Date(resetDate)),
           service: "",
-          catId: `${formatDateWithSlashes(new Date())}- `,
+          catId: resetCatId,
           catNumber: null,
           crossStreet: "",
           crossZip: "",
@@ -339,7 +384,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
       {/* Modal UI */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-cyan-950 bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white rounded-3xl py-8 px-16 flex flex-col justify-center items-center">
+          <div className="bg-white max-w-[60%] rounded-3xl py-8 px-16 flex flex-col justify-center items-center">
             {/* Modal Title */}
             <h2
               className={`text-3xl pb-4 font-bold ${
@@ -391,7 +436,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 )}
               </>
             ) : (
-              <p className="mt-2 pb-4">{modalMessage}</p>
+              <div className="mt-2 pb-4">{modalMessage}</div>
             )}
 
             {/* Close Button */}
@@ -640,9 +685,9 @@ export default function RecordForm({ initialData = {}, onClose }) {
           <div className="w-3/5">
             {/* Surgeries Performed */}
             <MultiSelect
-              label="Surgeries Performed"
+              label="Services Performed"
               options={dropdowns.surgeriesPerformed}
-              placeholder="Select surgeries"
+              placeholder="Select services"
               value={formData.surgeriesPerformed}
               onChange={(selected) =>
                 setFormData((prev) => ({
@@ -753,7 +798,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
               <select
                 id="age"
                 name="age"
-                defaultValue=""
+                value={formData.age}
                 className={formData.age ? "text-primaryGray" : "text-gray-400"}
                 onChange={handleFieldChange}
               >
@@ -876,15 +921,10 @@ export default function RecordForm({ initialData = {}, onClose }) {
             <select
               id="outcome"
               name="outcome"
-              defaultValue=""
-              className={
-                formData.outcome ? "text-primaryGray" : "text-gray-400"
-              }
+              value={formData.outcome || "Alive"}
               onChange={handleFieldChange}
             >
-              <option value="" disabled hidden>
-                Select an outcome
-              </option>
+              <option value="Alive">Alive</option>
               {dropdowns.outcomes.map((currOutcome, index) => (
                 <option
                   key={index}
@@ -903,22 +943,24 @@ export default function RecordForm({ initialData = {}, onClose }) {
 
             {formData.trapper !== "" && formData.service !== "" ? (
               <div
-                className={`flex h-[38px] items-center gap-2 cursor-pointer transition ${
+                className={`flex h-[38px] items-center gap-2 transition ${
                   formData.qualifiesForTIP
                     ? "text-primaryGreen"
                     : "text-errorRed"
                 }`}
-                // Override TIP Qualifications if necessary
-                onClick={() => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    qualifiesForTIP: !prev.qualifiesForTIP,
-                  }));
-                  setOverrideQualificationsActive(true);
-                }}
               >
                 <img
                   src={formData.qualifiesForTIP ? qualified : notQualified}
+                  // Override TIP Qualifications if necessary
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      qualifiesForTIP: !prev.qualifiesForTIP,
+                    }));
+                    setOverrideQualificationsActive(true);
+                  }}
+                  className="cursor-pointer"
+                  alt="TIP Qualification Status"
                 />
                 <p className="text-xs">
                   {overrideQualificationsActive
