@@ -5,12 +5,12 @@ import { getAuth } from "firebase/auth";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDI6BJ8QeiM3T3ona8Rt4vOOf4X1u7PvEA",
-  authDomain: "streetcatclinic.firebaseapp.com",
-  projectId: "streetcatclinic",
-  storageBucket: "streetcatclinic.firebasestorage.app",
-  messagingSenderId: "1090589337948",
-  appId: "1:1090589337948:web:5785232a538e5819503999",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
