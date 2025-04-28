@@ -110,7 +110,7 @@ export default function RecordsPage() {
   };
 
   const confirmDelete = () => {
-    deleteRecord(selectedRecord.id);
+    deleteRecord(selectedRecord);
     setDeleteModalOpen(false);
     setSelectedRecord(null);
   };
@@ -149,8 +149,9 @@ export default function RecordsPage() {
           message={
             <>
               <p>
-                Are you sure you want to delete the following record entry? This
-                action cannot be undone.
+                Are you sure you want to delete the following record entry? If
+                this record has a corresponding PDF associated with it, it will
+                also be deleted. This action cannot be undone.
               </p>
               <p className="pl-4 py-2">
                 <strong>Recorded Entry: {selectedRecord.catId}</strong>
@@ -167,7 +168,7 @@ export default function RecordsPage() {
       )}
       <section className="p-8 max-h-screen flex flex-col gap-8">
         {selectedRecord && (
-          <article className="rounded-xl flex justify-between flex-shrink-0 gap-4 px-8">
+          <article className="rounded-xl flex justify-between gap-4 px-8">
             <div className="min-w-64">
               <div className="flex items-center gap-2 mb-4">
                 <CatIcon />
@@ -230,13 +231,13 @@ export default function RecordsPage() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-2 h-full flex-grow">
+            <div className="flex flex-col gap-2 h-full flex-grow w-[64%]">
               {/* Cat Details */}
               <div className="flex gap-3 items-start">
                 <div className="flex">
                   <ClipboardIcon />
                 </div>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 w-[100%]">
                   <div className="flex flex-col gap-2 flex-grow">
                     <div className="grid grid-cols-4 gap-2 flex-grow">
                       <p className="col-span-1">

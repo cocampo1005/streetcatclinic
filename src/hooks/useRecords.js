@@ -13,7 +13,8 @@ import {
   where,
   Timestamp,
 } from "firebase/firestore";
-import { db } from "../firebase-config";
+import { db, storage } from "../firebase-config";
+import { ref, deleteObject } from "firebase/storage";
 
 export default function useRecords(pageSize = 20) {
   const [records, setRecords] = useState([]);
@@ -231,14 +232,47 @@ export default function useRecords(pageSize = 20) {
     }
   };
 
-  const deleteRecord = async (id) => {
+  // Delete a record and its associated PDF from Storage if it exists
+  const deleteRecord = async (recordToDelete) => {
+    if (!recordToDelete || !recordToDelete.id) {
+      console.error("Invalid record data for deletion.");
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      await deleteDoc(doc(db, "records", id));
-      setRecords((prevRecords) =>
-        prevRecords.filter((record) => record.id !== id)
+      // Check if the record has a PDF associated and delete from Storage
+      if (recordToDelete.pdfUrl) {
+        const fileRef = ref(storage, recordToDelete.pdfUrl);
+        try {
+          await deleteObject(fileRef);
+          console.log(
+            "Successfully deleted PDF from storage:",
+            recordToDelete.pdfUrl
+          );
+        } catch (storageError) {
+          console.error("Error deleting PDF from storage:", storageError);
+        }
+      }
+
+      // Delete the record document from Firestore
+      const recordDocRef = doc(db, "records", recordToDelete.id);
+      await deleteDoc(recordDocRef);
+      console.log(
+        "Successfully deleted record from Firestore:",
+        recordToDelete.id
       );
-    } catch (error) {
-      console.error("Error deleting record:", error);
+
+      // Update your local state to remove the deleted record
+      setRecords((prevRecords) =>
+        prevRecords.filter((record) => record.id !== recordToDelete.id)
+      );
+    } catch (firestoreError) {
+      console.error("Error deleting record from Firestore:", firestoreError);
+      alert("Failed to delete record. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
