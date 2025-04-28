@@ -1,5 +1,8 @@
 import { useState } from "react";
 import {
+  doc,
+  deleteDoc,
+  updateDoc,
   collection,
   query,
   orderBy,
@@ -9,7 +12,8 @@ import {
   where,
   Timestamp,
 } from "firebase/firestore";
-import { db } from "../firebase-config";
+import { db, storage } from "../firebase-config";
+import { ref, deleteObject } from "firebase/storage";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 
@@ -315,6 +319,38 @@ export default function useForms(pageSize = 10) {
     }
   };
 
+  // Delete PDF from Firebase Storage and corresponding record from Firestore
+  const deletePdfForm = async (form) => {
+    if (!form.pdfUrl || !form.id) {
+      console.error("Invalid form data for deletion:", form);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Delete from Firebase Storage
+      const fileRef = ref(storage, form.pdfUrl);
+      await deleteObject(fileRef);
+
+      // Delete entire corresponding record doc from Firestore
+      const formDocRef = doc(db, "records", form.id);
+      await deleteDoc(formDocRef);
+
+      // Remove the form from the local state
+      setForms((prevForms) => prevForms.filter((f) => f.id !== form.id));
+
+      console.log(
+        "Successfully deleted PDF and updated Firestore for form:",
+        form.id
+      );
+    } catch (error) {
+      console.error("Error deleting PDF form:", error);
+      alert("Failed to delete form. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Helper functions
   const formatFileName = (url) => {
     if (!url) return "Unknown";
@@ -377,5 +413,6 @@ export default function useForms(pageSize = 10) {
     fetchFilteredForms,
     exportBatchPDFs,
     exportSelectedPDFs,
+    deletePdfForm,
   };
 }

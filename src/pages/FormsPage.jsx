@@ -3,6 +3,7 @@ import {
   CalendarIcon,
   CatIcon,
   Checkmark,
+  DeleteIcon,
   DownloadIcon,
   FilterIcon,
   FormIcon,
@@ -11,11 +12,14 @@ import {
   TrapperIcon,
 } from "../components/svgs/Icons";
 import useForms from "../hooks/useForms";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function FormsPage() {
   const [selectedForm, setSelectedForm] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [selectedForms, setSelectedForms] = useState([]);
+  const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [formToDelete, setFormToDelete] = useState(null);
 
   // Filtering States
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -33,6 +37,7 @@ export default function FormsPage() {
     fetchFilteredForms,
     exportBatchPDFs,
     exportSelectedPDFs,
+    deletePdfForm,
   } = useForms(5);
 
   // Initial fetch on component mount
@@ -142,6 +147,17 @@ export default function FormsPage() {
     return selectedForms.some((form) => form.id === formId);
   };
 
+  // Confirm deletion and call deletePdfForm
+  const confirmDelete = async () => {
+    if (formToDelete) {
+      await deletePdfForm(formToDelete);
+      setDeleteModalOpen(false);
+      setFormToDelete(null);
+      setSelectedForm(null); // Close selected form details if deleted
+      setSelectedRowId(null); // Deselect row if deleted
+    }
+  };
+
   // Add this function inside your FormsPage component
   const getMonthName = (monthNum) => {
     if (!monthNum) return "";
@@ -151,6 +167,27 @@ export default function FormsPage() {
 
   return (
     <>
+      {/* Confirmation Deletion Modal */}
+      {isDeleteModalOpen && formToDelete && (
+        <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Form"
+          message={
+            <>
+              <p>
+                Are you sure you want to delete the following PDF form? This
+                will also delete the corresponding record from the database.
+                This action cannot be undone.
+              </p>
+              <p className="pl-4 py-2">
+                <strong>File Name: {formToDelete.fileName}</strong>
+              </p>
+            </>
+          }
+        />
+      )}
       <header className="w-full flex justify-between border-b-2 border-tertiaryGray p-8">
         <h1 className="font-accent font-bold text-4xl">TIP Forms</h1>
         <div className="flex gap-4">
@@ -188,16 +225,27 @@ export default function FormsPage() {
           <article className="flex flex-col flex-shrink-0 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CatIcon />
-                <h2 className="text-2xl font-bold">{selectedForm.catId}</h2>
+                <div className="flex items-center gap-2">
+                  <CatIcon />
+                  <h2 className="text-2xl font-bold">{selectedForm.catId}</h2>
+                </div>
+                <a
+                  href={selectedForm.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <PDFIcon />
+                </a>
               </div>
-              <a
-                href={selectedForm.pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => {
+                  setFormToDelete(selectedForm);
+                  setDeleteModalOpen(true);
+                }}
+                className="text-secondaryGray px-8 hover:text-errorRed"
               >
-                <PDFIcon />
-              </a>
+                <DeleteIcon />
+              </button>
             </div>
             <div className="grid grid-cols-2">
               <div>
