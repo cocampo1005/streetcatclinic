@@ -29,6 +29,37 @@ The Street Cat Clinic App is built to support the efforts of clinics and volunte
 
 ---
 
+## 📸 Screenshots
+
+A preview of key features and UI screens from the Street Cat Clinic App:
+
+### 🔹 New Entry Flow
+
+![New Entry Form](https://github.com/user-attachments/assets/62338bfd-08b9-4aa1-9a14-401e961d282f)
+
+### 🔹 Trapper Management
+
+![Trappers](https://github.com/user-attachments/assets/904f966c-cb20-4d5c-91f0-fbb866b70515)
+![Trapper Modal](https://github.com/user-attachments/assets/d78d560d-5050-4f7e-8a44-064a7e607372)
+
+### 🔹 Record Management
+
+![Records](https://github.com/user-attachments/assets/3659f37b-939d-483e-8832-3a08c640045f)
+![Edit Record](https://github.com/user-attachments/assets/39a65646-cb0d-45a6-b499-4bba04ab8b82)
+![Record Details](https://github.com/user-attachments/assets/9a2da5f1-4b1a-4f45-89c9-f26fc838e1d6)
+
+### 🔹 PDF Forms & Export
+
+![Forms](https://github.com/user-attachments/assets/40e43998-1981-495f-b4ff-5ac649030de8)
+![Forms Export](https://github.com/user-attachments/assets/716efd19-6575-48d5-860f-4b0b41dc9abb)
+
+### 🔹 User Accounts
+
+![Accounts](https://github.com/user-attachments/assets/5cc4c69e-50b4-4361-a33e-5abf89d72cdb)
+![Accounts Modal](https://github.com/user-attachments/assets/5cd4cc33-0b56-4b9a-8bd1-00af94d41490)
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Frontend:** React.js + Vite + Tailwind CSS
