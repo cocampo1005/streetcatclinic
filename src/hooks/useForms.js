@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   doc,
-  deleteDoc,
   updateDoc,
   collection,
   query,
@@ -328,21 +327,18 @@ export default function useForms(pageSize = 10) {
 
     setIsLoading(true);
     try {
-      // Delete from Firebase Storage
+      // Delete PDF from Firebase Storage
       const fileRef = ref(storage, form.pdfUrl);
       await deleteObject(fileRef);
 
-      // Delete entire corresponding record doc from Firestore
+      // Update the Firestore document to remove pdfUrl
       const formDocRef = doc(db, "records", form.id);
-      await deleteDoc(formDocRef);
+      await updateDoc(formDocRef, {
+        pdfUrl: null,
+      });
 
       // Remove the form from the local state
       setForms((prevForms) => prevForms.filter((f) => f.id !== form.id));
-
-      console.log(
-        "Successfully deleted PDF and updated Firestore for form:",
-        form.id
-      );
     } catch (error) {
       console.error("Error deleting PDF form:", error);
       alert("Failed to delete form. Please try again.");

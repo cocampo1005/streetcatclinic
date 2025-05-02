@@ -295,9 +295,20 @@ export default function RecordForm({ initialData = {}, onClose }) {
             setPdfStatus("uploading");
             setModalMessage("⬆ Uploading TIP PDF to Firebase...");
 
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, "0");
+            // Use intakeTimestamp for naming, falling back to current date if necessary
+            const intakeDate = formData.intakeTimestamp?.toDate();
+
+            if (!intakeDate) {
+              console.error(
+                "Record is missing intakeTimestamp, cannot generate PDF with date-based naming.",
+                formData
+              );
+              // You might want to handle this error more gracefully, e.g., skip PDF generation or use a default naming
+              throw new Error("Missing Intake Date for PDF naming.");
+            }
+
+            const year = intakeDate.getFullYear();
+            const month = String(intakeDate.getMonth() + 1).padStart(2, "0");
             const safeCatId = formData.catId.replace(/\//g, "_");
 
             const pdfPath = `pdfs/${year}-${month}/${safeCatId}_MDAS_TIP_Form.pdf`;

@@ -247,10 +247,6 @@ export default function useRecords(pageSize = 20) {
         const fileRef = ref(storage, recordToDelete.pdfUrl);
         try {
           await deleteObject(fileRef);
-          console.log(
-            "Successfully deleted PDF from storage:",
-            recordToDelete.pdfUrl
-          );
         } catch (storageError) {
           console.error("Error deleting PDF from storage:", storageError);
         }
@@ -259,10 +255,6 @@ export default function useRecords(pageSize = 20) {
       // Delete the record document from Firestore
       const recordDocRef = doc(db, "records", recordToDelete.id);
       await deleteDoc(recordDocRef);
-      console.log(
-        "Successfully deleted record from Firestore:",
-        recordToDelete.id
-      );
 
       // Update your local state to remove the deleted record
       setRecords((prevRecords) =>
@@ -382,6 +374,7 @@ export default function useRecords(pageSize = 20) {
 
   return {
     records,
+    setRecords,
     isLoading,
     isExporting,
     toggleSortOrder,

@@ -22,12 +22,18 @@ import {
 import ConfirmationModal from "../components/ConfirmationModal";
 import RecordModal from "../components/RecordModal";
 import useRecords from "../hooks/useRecords";
+import { generateMDASTIPFormPDF } from "../utils/pdfGenerator"; // Import the PDF generator utility
+import { storage, db } from "../firebase-config"; // Import db and storage
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Import storage functions
+import { doc, updateDoc } from "firebase/firestore"; // Import firestore functions
+import LoadingSpinner from "../components/svgs/LoadingSpinner";
 
 export default function RecordsPage() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // Filtering States
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -46,6 +52,7 @@ export default function RecordsPage() {
     isLastPage,
     fetchFilteredRecords,
     deleteRecord,
+    updateRecord,
     exportToCSV,
   } = useRecords(5);
 
@@ -100,6 +107,67 @@ export default function RecordsPage() {
     };
 
     exportToCSV(filters);
+  };
+
+  // Handle PDF Regeneration
+  const handleGeneratePdf = async (record) => {
+    if (!record || !record.id) {
+      console.error("Invalid record data for PDF generation.");
+      return;
+    }
+
+    // Ensure record has intakeTimestamp, fall back to current date if not (though it should exist)
+    const intakeDate = record.intakeTimestamp?.toDate();
+
+    if (!intakeDate) {
+      console.error(
+        "Record is missing intakeTimestamp, cannot generate PDF with date-based naming.",
+        record
+      );
+      alert("Cannot generate PDF: Intake date is missing for this record.");
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+    try {
+      // Generate the PDF blob from the record data
+      const pdfBlob = await generateMDASTIPFormPDF(record);
+
+      if (!pdfBlob) {
+        throw new Error("PDF generation failed.");
+      }
+
+      // Define storage path and filename based on intake date and desired format
+      const year = intakeDate.getFullYear();
+      const month = String(intakeDate.getMonth() + 1).padStart(2, "0");
+
+      // Ensure catId is safe for filename (replace '/' with '_')
+      const safeCatId = record.catId.replace(/\//g, "_");
+
+      // Construct the storage path in the desired pdfs/YYYY-MM/ format
+      const pdfPath = `pdfs/${year}-${month}/${safeCatId}_MDAS_TIP_Form.pdf`;
+
+      const pdfRef = ref(storage, pdfPath);
+
+      // Upload the PDF blob to Firebase Storage
+      const uploadResult = await uploadBytes(pdfRef, pdfBlob);
+      const pdfUrl = await getDownloadURL(uploadResult.ref);
+
+      // Update the record document in Firestore with the new PDF URL
+      const recordDocRef = doc(db, "records", record.id);
+      await updateDoc(recordDocRef, {
+        pdfUrl: pdfUrl,
+      });
+
+      // Update the selected record and the records list in state
+      const updatedRecord = { ...record, pdfUrl: pdfUrl };
+      setSelectedRecord(updatedRecord); // Update the currently selected record details
+    } catch (error) {
+      console.error("Error generating or uploading PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handleRowClick = (record) => {
@@ -207,24 +275,49 @@ export default function RecordsPage() {
                 </div>
                 <div className="flex items-center">
                   <TipIcon />
-                  <div className="pl-2 pt-1">
+                  <div className="flex gap-2 pl-2 pt-1">
                     {selectedRecord.qualifiesForTIP ? (
                       selectedRecord.pdfUrl ? (
-                        <div className="flex gap-3">
+                        // Show View PDF button if PDF exists
+                        <>
                           <p>Yes</p>
-                          <a href={selectedRecord.pdfUrl} target="_blank">
-                            <button className="bg-errorRed text-primaryWhite font-bold text-xs px-2 rounded hover:bg-primaryWhite hover:border hover:border-errorRed hover:text-errorRed">
+                          <a
+                            href={selectedRecord.pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <button className="bg-errorRed text-primaryWhite font-bold text-xs px-2 py-1 rounded hover:bg-primaryWhite hover:border hover:border-errorRed hover:text-errorRed">
                               View PDF
                             </button>
                           </a>
-                        </div>
+                        </>
                       ) : (
-                        <p>
-                          Yes -{" "}
-                          <span className="text-errorRed">No PDF Found</span>
-                        </p>
+                        // Show Generate PDF button if qualifies but no PDF
+                        <>
+                          <p>
+                            Yes -{" "}
+                            <span className="text-errorRed">No PDF Found</span>
+                          </p>
+                          <button
+                            onClick={() => handleGeneratePdf(selectedRecord)}
+                            className={`bg-primaryGreen text-primaryWhite font-bold text-xs px-2 py-1 rounded ${
+                              isGeneratingPdf
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:bg-secondaryGreen"
+                            }`}
+                            disabled={isGeneratingPdf}
+                          >
+                            {isGeneratingPdf ? (
+                              <LoadingSpinner size="small" />
+                            ) : (
+                              "Generate PDF"
+                            )}{" "}
+                            {/* Show spinner while generating */}
+                          </button>
+                        </>
                       )
                     ) : (
+                      // Show No if not qualified
                       <p>No</p>
                     )}
                   </div>

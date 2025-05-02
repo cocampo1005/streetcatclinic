@@ -178,8 +178,8 @@ export default function FormsPage() {
             <>
               <p>
                 Are you sure you want to delete the following PDF form? This
-                will also delete the corresponding record from the database.
-                This action cannot be undone.
+                action cannot be undone, but you can generate a new PDF in the
+                records page by clicking into the specific record.
               </p>
               <p className="pl-4 py-2">
                 <strong>File Name: {formToDelete.fileName}</strong>
