@@ -83,7 +83,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
     weight: initialData.weight || "",
     additionalDrug: initialData.additionalDrug || "",
     dosage: initialData.dosage || "",
-    catName: initialData.catName || "Unnamed",
+    catName: initialData.catName || "",
     age: initialData.age || "",
     additionalNotes: initialData.additionalNotes || "",
     sex: initialData.sex || "",
@@ -303,7 +303,6 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 "Record is missing intakeTimestamp, cannot generate PDF with date-based naming.",
                 formData
               );
-              // You might want to handle this error more gracefully, e.g., skip PDF generation or use a default naming
               throw new Error("Missing Intake Date for PDF naming.");
             }
 
@@ -365,7 +364,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
           weight: "",
           additionalDrug: "",
           dosage: "",
-          catName: "Unnamed",
+          catName: "",
           age: "",
           additionalNotes: "",
           sex: "",
@@ -797,7 +796,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 name="catName"
                 type="text"
                 placeholder="Enter Name"
-                value={formData.catName || "Unnamed"}
+                value={formData.catName}
                 onChange={handleFieldChange}
                 onFocus={(e) => e.target.select()}
               />
