@@ -455,9 +455,9 @@ export default function RecordsPage() {
           }`}
         >
           <table className="w-full min-w-full divide-y divide-secondaryGray rounded-xl">
-            <thead className="sticky top-0 z-10 bg-tertiaryGray rounded-xl border-b border-primaryWhite">
+            <thead className="sticky top-0 z-10 bg-tertiaryGray rounded-xl border-b border-secondaryGray">
               <tr>
-                <th className="px-6 py-3 text-left rounded-tl-xl rounded-bl-xl">
+                <th className="px-6 py-3 text-left rounded-l-xl">
                   <div className="flex items-center gap-1">
                     Cat ID
                     <button
@@ -471,26 +471,16 @@ export default function RecordsPage() {
                 <th className="px-6 py-3 text-left">Intake Date</th>
                 <th className="px-6 py-3 text-left">Trapper</th>
                 <th className="px-6 py-3 text-left">Service</th>
-                <th className="px-6 py-3 text-left">TIP</th>
-                <th
-                  className="px-6 py-3 text-left cursor-pointer rounded-tr-xl rounded-br-xl"
-                  onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                >
-                  <div className="flex items-center hover:text-primaryGreen gap-1">
-                    <span>Filter</span>
-                    <FilterIcon />
-                  </div>
-                </th>
+                <th className="px-6 py-3 text-left rounded-r-xl">TIP</th>
               </tr>
-            </thead>
-
-            {/* Collapsible Filter Bar */}
-            {isFiltersOpen && (
-              <thead className="transition-all duration-300">
-                <tr>
-                  <th colSpan="6" className="p-4 bg-white">
-                    <div className="flex gap-4 items-center">
-                      <label>Month</label>
+              <tr>
+                <th colSpan="5" className="p-4 bg-white">
+                  <div className="flex items-center gap-4">
+                    <div className="shrink-0 font-bold">
+                      <FilterIcon />
+                    </div>
+                    <div className="flex gap-4 items-center justify-center w-full">
+                      <label className="m-0">Month</label>
                       <select
                         onChange={(e) =>
                           setFilterDate({
@@ -510,7 +500,7 @@ export default function RecordsPage() {
                         ))}
                       </select>
 
-                      <label>Year</label>
+                      <label className="m-0">Year</label>
                       <select
                         onChange={(e) =>
                           setFilterDate({ ...filterDate, year: e.target.value })
@@ -546,9 +536,7 @@ export default function RecordsPage() {
                       </select> */}
 
                       <button
-                        onClick={() => {
-                          applyFilters();
-                        }}
+                        onClick={applyFilters}
                         className="bg-primaryGreen hover:bg-secondaryGreen text-white px-4 py-2 rounded-lg"
                         disabled={isLoading}
                       >
@@ -561,10 +549,10 @@ export default function RecordsPage() {
                         Reset
                       </button>
                     </div>
-                  </th>
-                </tr>
-              </thead>
-            )}
+                  </div>
+                </th>
+              </tr>
+            </thead>
 
             <tbody className="bg-white divide-y divide-gray-300 overflow-y-auto max-h-[calc(100vh-350px)]">
               {records?.map((record) => (
