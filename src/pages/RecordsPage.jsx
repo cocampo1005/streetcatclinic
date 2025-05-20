@@ -95,7 +95,7 @@ export default function RecordsPage() {
 
   // Handle export to CSV
   const handleExportCSV = () => {
-    if (!filterDate.month || !filterDate.year) {
+    if (!filtersApplied || !filterDate.month || !filterDate.year) {
       alert("Please select a month and year before exporting.");
       return;
     }
@@ -183,6 +183,14 @@ export default function RecordsPage() {
     setSelectedRecord(null);
   };
 
+  // Function to get the month name
+  const getMonthName = (monthNumber) => {
+    if (!monthNumber) return "";
+    return new Date(0, monthNumber - 1).toLocaleString("default", {
+      month: "short",
+    });
+  };
+
   return (
     <>
       <header className="w-full flex justify-between border-b-2 border-tertiaryGray p-8">
@@ -195,7 +203,11 @@ export default function RecordsPage() {
               className="flex gap-2 bg-primaryWhite border-2 border-primaryGreen hover:bg-cyan-100 text-primaryGreen font-bold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <DownloadIcon />
-              {isExporting ? "Exporting..." : "Export CSV"}
+              {isExporting
+                ? "Exporting..."
+                : `Export All Records for ${getMonthName(filterDate.month)} ${
+                    filterDate.year
+                  }`}
             </button>
           )}
           <Link

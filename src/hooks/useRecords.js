@@ -293,6 +293,7 @@ export default function useRecords(pageSize = 20) {
       "Cat ID",
       "Intake Date",
       "Trapper",
+      "Trapper Address",
       "Service",
       "TNR - Cross Street",
       "TNR - Cross Zip Code",
@@ -321,12 +322,29 @@ export default function useRecords(pageSize = 20) {
 
     // Add data rows
     allRecords.forEach((record) => {
+      let trapperAddress = "";
+      if (record.trapper && record.trapper.address) {
+        const { street, apartment, city, state, zip } = record.trapper.address;
+        trapperAddress = street || "";
+        if (apartment) {
+          // If appartment exists, add it
+          trapperAddress += ` ${apartment}`;
+        }
+        trapperAddress += `, ${city || ""}, ${state || ""}, ${zip || ""}`;
+        // Clean up leading/trailing commas or extra spaces if some parts are missing
+        trapperAddress = trapperAddress
+          .replace(/^,\s*|\s*,\s*$/g, "")
+          .replace(/\s*,\s*,/g, ",")
+          .trim();
+      }
+
       const row = [
         record.catId || "",
         record.intakePickupDate || "",
         record.trapper
           ? `${record.trapper.trapperId} - ${record.trapper.firstName} ${record.trapper.lastName}`
           : record.trapper?.name || "",
+        trapperAddress,
         record.service || "",
         record.crossStreet || "",
         record.crossZip || "",
