@@ -168,7 +168,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
       setFormData((prev) => ({
         ...prev,
         intakePickupDate: value,
-        intakeTimestamp: new Date(value),
+        intakeTimestamp: Timestamp.fromDate(new Date(value)),
         catId: newCatId,
       }));
       return;
