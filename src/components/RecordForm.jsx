@@ -269,12 +269,14 @@ export default function RecordForm({ initialData = {}, onClose }) {
             setModalMessage(
               <>
                 <p className="text-lg text-center font-bold mb-2">
-                  ❌ Cannot generate TIP PDF
+                  ⛔ Cannot generate TIP PDF
                 </p>
                 <p className="text-center">
                   The following fields are required for TIP PDF generation:
                 </p>
-                <p>{validationErrors.join("\n")}</p>
+                <p className="text-sm whitespace-pre-line text-left mt-2">
+                  {validationErrors.join("\n")}
+                </p>
                 <p className="text-center mt-2">
                   Please fill out all required fields and try again.
                 </p>
@@ -286,14 +288,19 @@ export default function RecordForm({ initialData = {}, onClose }) {
           }
 
           setPdfStatus("generating");
-          setModalMessage("📄 Generating TIP PDF...");
+          setModalMessage("📄 Validating signature and generating TIP PDF...");
 
           try {
             const pdfBlob = await generateMDASTIPFormPDF(formData);
-            if (!pdfBlob) throw new Error("PDF blob is null");
+
+            if (!pdfBlob) {
+              throw new Error(
+                "PDF generation returned null - unknown error occurred."
+              );
+            }
 
             setPdfStatus("uploading");
-            setModalMessage("⬆ Uploading TIP PDF to Firebase...");
+            setModalMessage("⬆️ Uploading TIP PDF to Firebase...");
 
             // Use intakeTimestamp for naming, falling back to current date if necessary
             const intakeDate = formData.intakeTimestamp?.toDate();
@@ -318,12 +325,26 @@ export default function RecordForm({ initialData = {}, onClose }) {
             setPdfStatus("completed");
             setModalMessage("✅ PDF successfully generated and uploaded!");
           } catch (pdfError) {
-            console.error("❌ Error generating/uploading PDF:", pdfError);
+            console.error("⛔ Error generating/uploading PDF:", pdfError);
             setPdfStatus("error");
+
+            // Display the specific error message from the PDF generator
             setModalMessage(
-              "❌ Failed to generate PDF. Please fix the error and try again."
+              <>
+                <p className="text-lg text-center font-bold mb-2">
+                  ⛔ PDF Generation Failed
+                </p>
+                <p className="text-sm text-left whitespace-pre-line">
+                  {pdfError.message ||
+                    "An unknown error occurred during PDF generation."}
+                </p>
+                <p className="text-center mt-3 font-semibold">
+                  Please try again. If the problem persists, contact support.
+                </p>
+              </>
             );
             setModalType("error");
+            setIsModalOpen(true);
             return;
           }
         }
