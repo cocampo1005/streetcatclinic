@@ -51,6 +51,7 @@ export const validateTIPEligibility = (entryData) => {
   if (!entryData.crossZip) entryErrors.push("cross zip");
   if (!entryData.breed) entryErrors.push("breed");
   if (!entryData.color?.length) entryErrors.push("color");
+  if (!entryData.weight) entryErrors.push("weight");
   if (!entryData.sex) entryErrors.push("sex");
   if (!entryData.age) entryErrors.push("age");
 
