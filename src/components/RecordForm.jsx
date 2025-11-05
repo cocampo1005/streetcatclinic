@@ -156,10 +156,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
   const handleFieldChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    let updatedValue = type === "checkbox" ? checked : value;
-    let updatedIntakeTimestamp = formData.intakeTimestamp;
-
-    // If changing intakePickupDate, update intakeTimestamp and sessionStorage values
+    // Date change logic
     if (name === "intakePickupDate") {
       sessionStorage.setItem("intakePickupDate", value);
       const newCatId = `${value}- `;
@@ -174,10 +171,20 @@ export default function RecordForm({ initialData = {}, onClose }) {
       return;
     }
 
+    // Toggle-off behavior for FeLV/FIV
+    if (name === "FeLVFIV") {
+      setFormData((prev) => ({
+        ...prev,
+        FeLVFIV: prev.FeLVFIV === value ? "" : value,
+      }));
+      return;
+    }
+
+    // Default behavior
+    const updatedValue = type === "checkbox" ? checked : value;
     setFormData((prev) => ({
       ...prev,
       [name]: updatedValue,
-      intakeTimestamp: updatedIntakeTimestamp,
     }));
   };
 
