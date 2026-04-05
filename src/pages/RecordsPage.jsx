@@ -25,7 +25,7 @@ import useRecords from "../hooks/useRecords";
 import { generateMDASTIPFormPDF } from "../utils/pdfGenerator"; // Import the PDF generator utility
 import { storage, db } from "../firebase-config"; // Import db and storage
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Import storage functions
-import { doc, updateDoc } from "firebase/firestore"; // Import firestore functions
+import { doc, getDoc, updateDoc } from "firebase/firestore"; // Import firestore functions
 import LoadingSpinner from "../components/svgs/LoadingSpinner";
 
 export default function RecordsPage() {
@@ -44,6 +44,7 @@ export default function RecordsPage() {
   // Fetch Records Hook
   const {
     records,
+    setRecords,
     isLoading,
     isExporting,
     toggleSortOrder,
@@ -88,7 +89,7 @@ export default function RecordsPage() {
           year: filterDate.year,
           surgery: filterSurgery || null,
         },
-        true // showAll flag
+        true, // showAll flag
       );
     }
   };
@@ -111,60 +112,57 @@ export default function RecordsPage() {
 
   // Handle PDF Regeneration
   const handleGeneratePdf = async (record) => {
-    if (!record || !record.id) {
+    if (!record?.id) {
       console.error("Invalid record data for PDF generation.");
       return;
     }
 
-    // Ensure record has intakeTimestamp, fall back to current date if not (though it should exist)
-    const intakeDate = record.intakeTimestamp?.toDate();
-
-    if (!intakeDate) {
-      console.error(
-        "Record is missing intakeTimestamp, cannot generate PDF with date-based naming.",
-        record
-      );
-      alert("Cannot generate PDF: Intake date is missing for this record.");
-      return;
-    }
-
     setIsGeneratingPdf(true);
-    try {
-      // Generate the PDF blob from the record data
-      const pdfBlob = await generateMDASTIPFormPDF(record);
 
+    try {
+      const recordRef = doc(db, "records", record.id);
+      const recordSnap = await getDoc(recordRef);
+
+      if (!recordSnap.exists()) {
+        throw new Error("Record not found.");
+      }
+
+      const freshRecord = {
+        id: recordSnap.id,
+        ...recordSnap.data(),
+      };
+
+      const intakeDate = freshRecord.intakeTimestamp?.toDate();
+      if (!intakeDate) {
+        throw new Error("Cannot generate PDF: intake date is missing.");
+      }
+
+      const pdfBlob = await generateMDASTIPFormPDF(freshRecord);
       if (!pdfBlob) {
         throw new Error("PDF generation failed.");
       }
 
-      // Define storage path and filename based on intake date and desired format
       const year = intakeDate.getFullYear();
       const month = String(intakeDate.getMonth() + 1).padStart(2, "0");
-
-      // Ensure catId is safe for filename (replace '/' with '_')
-      const safeCatId = record.catId.replace(/\//g, "_");
-
-      // Construct the storage path in the desired pdfs/YYYY-MM/ format
+      const safeCatId = String(freshRecord.catId).replace(/\//g, "_");
       const pdfPath = `pdfs/${year}-${month}/${safeCatId}_MDAS_TIP_Form.pdf`;
 
       const pdfRef = ref(storage, pdfPath);
+      await uploadBytes(pdfRef, pdfBlob);
+      const pdfUrl = await getDownloadURL(pdfRef);
 
-      // Upload the PDF blob to Firebase Storage
-      const uploadResult = await uploadBytes(pdfRef, pdfBlob);
-      const pdfUrl = await getDownloadURL(uploadResult.ref);
+      await updateDoc(recordRef, { pdfUrl });
 
-      // Update the record document in Firestore with the new PDF URL
-      const recordDocRef = doc(db, "records", record.id);
-      await updateDoc(recordDocRef, {
-        pdfUrl: pdfUrl,
-      });
-
-      // Update the selected record and the records list in state
-      const updatedRecord = { ...record, pdfUrl: pdfUrl };
-      setSelectedRecord(updatedRecord); // Update the currently selected record details
+      try {
+        setSelectedRecord((prev) =>
+          prev?.id === freshRecord.id ? { ...freshRecord, pdfUrl } : prev,
+        );
+      } catch (uiError) {
+        console.warn("PDF saved successfully, but UI refresh failed:", uiError);
+      }
     } catch (error) {
       console.error("Error generating or uploading PDF:", error);
-      alert("Failed to generate PDF. Please try again.");
+      alert(`Failed to generate PDF: ${error.message}`);
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -172,7 +170,7 @@ export default function RecordsPage() {
 
   const handleRowClick = (record) => {
     setSelectedRecord((prevRecord) =>
-      prevRecord?.id === record.id ? null : record
+      prevRecord?.id === record.id ? null : record,
     );
     setSelectedRowId((prevId) => (prevId === record.id ? null : record.id));
   };
@@ -244,6 +242,17 @@ export default function RecordsPage() {
         <RecordModal
           initialData={selectedRecord}
           onClose={() => setEditModalOpen(false)}
+          onRecordSaved={(updatedRecord) => {
+            setRecords((prev) =>
+              prev.map((record) =>
+                record.id === updatedRecord.id ? updatedRecord : record,
+              ),
+            );
+
+            setSelectedRecord(updatedRecord);
+            setSelectedRowId(updatedRecord.id);
+            setEditModalOpen(false);
+          }}
         />
       )}
       <section className="p-8 max-h-screen flex flex-col gap-8">
@@ -528,7 +537,7 @@ export default function RecordsPage() {
                                 {year}
                               </option>
                             );
-                          }
+                          },
                         )}
                       </select>
 

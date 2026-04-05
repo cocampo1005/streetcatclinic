@@ -2,7 +2,7 @@ import React from "react";
 import RecordForm from "./RecordForm";
 import { EditIcon } from "./svgs/Icons";
 
-export default function RecordModal({ initialData, onClose }) {
+export default function RecordModal({ initialData, onClose, onRecordSaved }) {
   return (
     <div className="fixed inset-0 bg-cyan-950 bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-white rounded-3xl py-8 px-16">
@@ -12,7 +12,11 @@ export default function RecordModal({ initialData, onClose }) {
             Edit Record
           </h2>
         </div>
-        <RecordForm initialData={initialData} onClose={onClose} />
+        <RecordForm
+          initialData={initialData}
+          onClose={onClose}
+          onRecordSaved={onRecordSaved}
+        />
       </div>
     </div>
   );

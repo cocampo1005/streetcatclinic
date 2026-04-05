@@ -35,13 +35,17 @@ const categories = [
   "outcomes",
 ];
 
-export default function RecordForm({ initialData = {}, onClose }) {
+export default function RecordForm({
+  initialData = {},
+  onClose,
+  onRecordSaved,
+}) {
   const { trappers } = useTrappers();
   const { createRecord, updateRecord } = useRecords();
 
   // Dropdown data states
   const [dropdowns, setDropdowns] = useState(
-    categories.reduce((acc, category) => ({ ...acc, [category]: [] }), {})
+    categories.reduce((acc, category) => ({ ...acc, [category]: [] }), {}),
   );
 
   //Modal and processing status states
@@ -110,7 +114,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
             newDropdowns[category] = docSnap.exists()
               ? docSnap.data().options
               : [];
-          })
+          }),
         );
 
         setDropdowns(newDropdowns);
@@ -128,7 +132,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
     if (formData.catId) {
       const trimmedCatId = formData.catId.trim();
       const match = trimmedCatId.match(
-        /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})- (\d+)$/
+        /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})- (\d+)$/,
       );
       if (match) {
         let [, month, day, year, number] = match;
@@ -144,9 +148,9 @@ export default function RecordForm({ initialData = {}, onClose }) {
         const newCatNumber = parseInt(
           `${year}${month.padStart(2, "0")}${day.padStart(
             2,
-            "0"
+            "0",
           )}${paddedNumber}`,
-          10
+          10,
         );
         setFormData((prev) => ({ ...prev, catNumber: newCatNumber }));
       }
@@ -216,7 +220,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
   // Use the hook to calculate dosage based on weight and drug
   const calculatedDosage = useDosageCalculation(
     formData.weight,
-    formData.additionalDrug
+    formData.additionalDrug,
   );
 
   // Update formData when calculatedDosage changes
@@ -260,9 +264,54 @@ export default function RecordForm({ initialData = {}, onClose }) {
       let recordRef;
 
       if (initialData && initialData.id) {
-        // Update an existing ecord
-        await updateRecord(initialData.id, formData);
-        recordRef = initialData.id;
+        const latestTrapper = formData.trapper?.id
+          ? trappers.find((t) => t.id === formData.trapper.id) ||
+            formData.trapper
+          : formData.trapper;
+
+        const updatedFormData = {
+          ...formData,
+          trapper: latestTrapper,
+        };
+
+        let finalSavedRecord = {
+          id: initialData.id,
+          ...updatedFormData,
+        };
+
+        await updateRecord(initialData.id, updatedFormData);
+
+        if (updatedFormData.qualifiesForTIP) {
+          const pdfBlob = await generateMDASTIPFormPDF(updatedFormData);
+          if (!pdfBlob) throw new Error("PDF blob is null");
+
+          const intakeDate = updatedFormData.intakeTimestamp?.toDate();
+          if (!intakeDate) {
+            throw new Error("Missing Intake Date for PDF naming.");
+          }
+
+          const year = intakeDate.getFullYear();
+          const month = String(intakeDate.getMonth() + 1).padStart(2, "0");
+          const safeCatId = updatedFormData.catId.replace(/\//g, "_");
+
+          const pdfPath = `pdfs/${year}-${month}/${safeCatId}_MDAS_TIP_Form.pdf`;
+          const pdfRef = ref(storage, pdfPath);
+
+          await uploadBytes(pdfRef, pdfBlob);
+          const pdfUrl = await getDownloadURL(pdfRef);
+
+          finalSavedRecord = {
+            ...finalSavedRecord,
+            pdfUrl,
+          };
+
+          await updateRecord(initialData.id, finalSavedRecord);
+        }
+
+        if (onRecordSaved) {
+          onRecordSaved(finalSavedRecord);
+        }
+
         setModalMessage("Record updated successfully!");
         setModalType("success");
       } else {
@@ -287,7 +336,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 <p className="text-center mt-2">
                   Please fill out all required fields and try again.
                 </p>
-              </>
+              </>,
             );
             setIsModalOpen(true);
             setPdfStatus("error");
@@ -302,7 +351,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
 
             if (!pdfBlob) {
               throw new Error(
-                "PDF generation returned null - unknown error occurred."
+                "PDF generation returned null - unknown error occurred.",
               );
             }
 
@@ -315,7 +364,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
             if (!intakeDate) {
               console.error(
                 "Record is missing intakeTimestamp, cannot generate PDF with date-based naming.",
-                formData
+                formData,
               );
               throw new Error("Missing Intake Date for PDF naming.");
             }
@@ -348,7 +397,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 <p className="text-center mt-3 font-semibold">
                   Please try again. If the problem persists, contact support.
                 </p>
-              </>
+              </>,
             );
             setModalType("error");
             setIsModalOpen(true);
@@ -409,7 +458,7 @@ export default function RecordForm({ initialData = {}, onClose }) {
     } catch (error) {
       console.error("Error submitting record:", error);
       setModalMessage(
-        "An error occurred while saving the record. Please try again."
+        "An error occurred while saving the record. Please try again.",
       );
       setModalType("error");
       setIsModalOpen(true);
@@ -429,15 +478,15 @@ export default function RecordForm({ initialData = {}, onClose }) {
                 modalType === "error"
                   ? "text-errorRed"
                   : modalType === "success"
-                  ? "text-primaryGreen"
-                  : "text-primaryGray"
+                    ? "text-primaryGreen"
+                    : "text-primaryGray"
               }`}
             >
               {modalType === "processing"
                 ? "Processing"
                 : modalType === "error"
-                ? "Error"
-                : "Success"}
+                  ? "Error"
+                  : "Success"}
             </h2>
 
             {/* Modal Message / PDF Status */}
@@ -482,7 +531,13 @@ export default function RecordForm({ initialData = {}, onClose }) {
               <button
                 onClick={() => {
                   setIsModalOpen(false);
-                  if (modalType === "success" && onClose) onClose();
+
+                  if (modalType === "success" && onClose) {
+                    onClose({
+                      success: true,
+                      recordId: initialData?.id || null,
+                    });
+                  }
                 }}
                 className="mt-4 px-10 py-2 bg-primaryGreen text-white rounded-lg"
               >
@@ -1006,10 +1061,10 @@ export default function RecordForm({ initialData = {}, onClose }) {
                       ? "Qualifications overridden"
                       : "Qualifications overridden"
                     : formData.qualifiesForTIP
-                    ? "Trapper qualifies for TIP"
-                    : formData.service === "MD-TNVR"
-                    ? "Trapper does not qualify for TIP (Click to override)"
-                    : "Service is not MD-TNVR"}
+                      ? "Trapper qualifies for TIP"
+                      : formData.service === "MD-TNVR"
+                        ? "Trapper does not qualify for TIP (Click to override)"
+                        : "Service is not MD-TNVR"}
                 </p>
               </div>
             ) : null}

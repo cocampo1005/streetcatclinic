@@ -129,15 +129,23 @@ const MDASTIPForm = ({ entryData }) => (
           {entryData.trapper.firstName} {entryData.trapper.lastName}
         </Text>
         <View style={{ flexDirection: "row", marginBottom: 10 }}>
-          <Text style={{ flex: 1 }}>
-            <Text style={styles.label}>Address: </Text>
-            {entryData.trapper.address.street}, {entryData.trapper.address.city}
-            , {entryData.trapper.address.state} {entryData.trapper.address.zip}
-          </Text>
-          <Text style={{ flex: 1 }}>
-            <Text style={styles.label}>Apt: </Text>
-            {entryData.trapper.address.aptartment}
-          </Text>
+          <View style={{ flex: 3, paddingRight: 8 }}>
+            <Text>
+              <Text style={styles.label}>Address: </Text>
+              {entryData.trapper.address.street},{" "}
+              {entryData.trapper.address.city},{" "}
+              {entryData.trapper.address.state} {entryData.trapper.address.zip}
+            </Text>
+          </View>
+
+          {!!entryData.trapper.address.apartment && (
+            <View style={{ flex: 1 }}>
+              <Text>
+                <Text style={styles.label}>Apt: </Text>
+                {entryData.trapper.address.apartment}
+              </Text>
+            </View>
+          )}
         </View>
         <Text>
           <Text style={styles.label}>Phone: </Text>
