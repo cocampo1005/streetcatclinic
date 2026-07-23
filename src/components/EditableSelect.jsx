@@ -1,64 +1,175 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import chevron from "../assets/icons/chevron-down.png";
 
-export default function EditableSelect({ options, value = "", onChange }) {
+export default function EditableSelect({ options = [], value = "", onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState("");
-  const dropdownRef = useRef(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  // Sync the local `selectedOption` state with the `value` prop whenever it changes
+  const containerRef = useRef(null);
+  const optionRefs = useRef([]);
+
   useEffect(() => {
     setSelectedOption(value);
   }, [value]);
 
-  // This function handles both selecting from the dropdown and typing in the input
-  const handleInputChange = (e) => {
-    const newValue = e.target.value;
-    setSelectedOption(newValue); // Update the local state to reflect typed value
-    onChange(newValue); // Update the parent state as well
+  const scrollToOption = (index) => {
+    window.requestAnimationFrame(() => {
+      optionRefs.current[index]?.scrollIntoView({
+        block: "nearest",
+      });
+    });
+  };
+
+  const findMatchingIndex = (searchValue) => {
+    const normalizedSearch = searchValue.trim().toLocaleLowerCase();
+
+    if (!normalizedSearch) {
+      return -1;
+    }
+
+    return options.findIndex((option) =>
+      String(option).toLocaleLowerCase().startsWith(normalizedSearch),
+    );
+  };
+
+  const handleInputChange = (event) => {
+    const newValue = event.target.value;
+    const matchIndex = findMatchingIndex(newValue);
+
+    setSelectedOption(newValue);
+    setIsOpen(true);
+    setHighlightedIndex(matchIndex);
+    onChange(newValue);
+
+    if (matchIndex >= 0) {
+      scrollToOption(matchIndex);
+    }
   };
 
   const handleSelect = (option) => {
     setSelectedOption(option);
     setIsOpen(false);
+    setHighlightedIndex(-1);
     onChange(option);
   };
 
-  // Close dropdown when clicking outside
+  const handleKeyDown = (event) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setIsOpen(true);
+
+      const nextIndex =
+        highlightedIndex < options.length - 1 ? highlightedIndex + 1 : 0;
+
+      setHighlightedIndex(nextIndex);
+      scrollToOption(nextIndex);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setIsOpen(true);
+
+      const previousIndex =
+        highlightedIndex > 0 ? highlightedIndex - 1 : options.length - 1;
+
+      setHighlightedIndex(previousIndex);
+      scrollToOption(previousIndex);
+      return;
+    }
+
+    if (event.key === "Enter" && isOpen && highlightedIndex >= 0) {
+      event.preventDefault();
+      handleSelect(options[highlightedIndex]);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsOpen(false);
+      setHighlightedIndex(-1);
+    }
+  };
+
+  const handleFocus = () => {
+    const matchIndex = findMatchingIndex(selectedOption);
+
+    setIsOpen(true);
+    setHighlightedIndex(matchIndex);
+
+    if (matchIndex >= 0) {
+      scrollToOption(matchIndex);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
         setIsOpen(false);
+        setHighlightedIndex(-1);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   return (
-    <div
-      className="relative w-full"
-      ref={dropdownRef}
-      onClick={() => setIsOpen(true)}
-    >
+    <div ref={containerRef} className="relative w-full">
       <input
         type="text"
-        className="w-full px-3 py-2 border border-gray-300 rounded"
+        className="w-full rounded border border-gray-300 px-3 py-2"
         value={selectedOption}
-        onChange={handleInputChange}
         placeholder="Select or edit option"
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        autoComplete="off"
+        onChange={handleInputChange}
+        onFocus={handleFocus}
+        onKeyDown={handleKeyDown}
       />
-      <img src={chevron} className="absolute top-1/3 right-2 h-3.5 w-3.5" />
+
+      <button
+        type="button"
+        className="absolute right-0 top-0 flex h-full items-center px-2"
+        aria-label="Toggle options"
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <img src={chevron} alt="" className="h-3.5 w-3.5" />
+      </button>
+
       {isOpen && (
-        <ul className="absolute w-full bg-white border border-gray-300 rounded shadow mt-1 max-h-40 overflow-y-auto z-10">
-          {options?.map((option, index) => (
+        <ul
+          className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded border border-gray-300 bg-white shadow"
+          role="listbox"
+        >
+          {options.map((option, index) => (
             <li
-              key={index}
-              className="px-3 py-2 cursor-pointer hover:bg-gray-100"
-              onClick={() => handleSelect(option)}
+              key={option}
+              ref={(element) => {
+                optionRefs.current[index] = element;
+              }}
+              role="option"
+              aria-selected={selectedOption === option}
+              className={`cursor-pointer px-3 py-2 hover:bg-gray-100 ${
+                highlightedIndex === index ? "bg-gray-100" : ""
+              }`}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onMouseDown={(event) => {
+                event.preventDefault();
+                handleSelect(option);
+              }}
             >
               {option}
             </li>

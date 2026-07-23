@@ -1,39 +1,101 @@
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import chevron from "../assets/icons/chevron-down.png";
+import useTypeahead from "../hooks/useTypeahead";
 import { RoundX } from "./svgs/Icons";
 
-const DropdownComponent = ({
+export default function MultiSelectInput({
   label,
-  options,
+  options = [],
   placeholder,
   value = [],
   onChange,
-}) => {
+}) {
   const [isDropdownVisible, setDropdownVisible] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  const dropdownRef = useRef(null); // Reference to the dropdown container
-  const inputRef = useRef(null); // Reference to the div that's acting as the input
+  const containerRef = useRef(null);
+  const optionRefs = useRef([]);
 
-  // Handle toggling an option (add/remove from selection)
   const toggleOption = (option) => {
     const newSelected = value.includes(option)
-      ? value.filter((item) => item !== option) // Remove from selection
-      : [...value, option]; // Add to selection
+      ? value.filter((item) => item !== option)
+      : [...value, option];
 
-    onChange(newSelected); // Notify the parent of the updated selection
+    onChange(newSelected);
   };
 
-  // Handle click outside of the dropdown to close it
+  const scrollToOption = (index) => {
+    window.requestAnimationFrame(() => {
+      optionRefs.current[index]?.scrollIntoView({
+        block: "nearest",
+      });
+    });
+  };
+
+  const handleTypeahead = useTypeahead({
+    options,
+    onMatch: (index) => {
+      setDropdownVisible(true);
+      setHighlightedIndex(index);
+      scrollToOption(index);
+    },
+  });
+
+  const handleKeyDown = (event) => {
+    if (event.target.closest("button")) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setDropdownVisible(true);
+
+      const nextIndex =
+        highlightedIndex < options.length - 1 ? highlightedIndex + 1 : 0;
+
+      setHighlightedIndex(nextIndex);
+      scrollToOption(nextIndex);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setDropdownVisible(true);
+
+      const previousIndex =
+        highlightedIndex > 0 ? highlightedIndex - 1 : options.length - 1;
+
+      setHighlightedIndex(previousIndex);
+      scrollToOption(previousIndex);
+      return;
+    }
+
+    if (event.key === "Enter" && highlightedIndex >= 0) {
+      event.preventDefault();
+      toggleOption(options[highlightedIndex]);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setDropdownVisible(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    if (handleTypeahead(event)) {
+      event.preventDefault();
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target)
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
       ) {
         setDropdownVisible(false);
-        inputRef.current.blur(); // Remove focus from the input div
+        setHighlightedIndex(-1);
       }
     };
 
@@ -47,62 +109,96 @@ const DropdownComponent = ({
   return (
     <div className="w-full">
       <label>{label}</label>
+
       <div
-        ref={inputRef} // Attach ref to the input container
+        ref={containerRef}
         className="relative rounded-lg border border-secondaryGray focus:border-primaryGreen focus:ring-1 focus:ring-primaryGreen"
-        tabIndex={0} // Ensures the div can receive focus
+        tabIndex={0}
+        role="combobox"
+        aria-expanded={isDropdownVisible}
+        aria-haspopup="listbox"
+        onClick={() => setDropdownVisible(true)}
         onFocus={() => setDropdownVisible(true)}
-        onBlur={() => {
-          // Delay to ensure click events inside the dropdown are handled
-          setTimeout(() => setDropdownVisible(false), 100);
-        }}
+        onKeyDown={handleKeyDown}
       >
         <div className="flex flex-wrap items-center gap-2 rounded-lg py-1 pl-2 pr-8">
           {value.length > 0 ? (
             value.map((option) => (
               <div
                 key={option}
-                className="flex items-center bg-tertiaryGray rounded-full pl-3 pr-2 py-1 text-sm"
+                className="flex items-center rounded-full bg-tertiaryGray py-1 pl-3 pr-2 text-sm"
               >
                 {option}
+
                 <button
                   type="button"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => toggleOption(option)}
                   className="ml-2 text-gray-600"
+                  aria-label={`Remove ${option}`}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleOption(option);
+                  }}
                 >
                   <RoundX />
                 </button>
               </div>
             ))
           ) : (
-            <span className="text-gray-400 text-sm p-1">{placeholder}</span>
+            <span className="p-1 text-sm text-gray-400">{placeholder}</span>
           )}
-          <img src={chevron} className="absolute top-1/5 right-2 h-3.5 w-3.5" />
+
+          <img
+            src={chevron}
+            alt=""
+            className="absolute right-2 top-1/5 h-3.5 w-3.5"
+          />
         </div>
+
         {isDropdownVisible && (
           <div
-            ref={dropdownRef} // Attach ref to the dropdown container
-            className="absolute top-full shadow-xl left-0 right-0 bg-white border rounded-lg mt-px z-10 max-h-40 overflow-y-auto"
+            className="absolute left-0 right-0 top-full z-10 mt-px max-h-40 overflow-y-auto rounded-lg border bg-white shadow-xl"
+            role="listbox"
+            aria-multiselectable="true"
           >
-            {options.map((option) => (
-              <div
-                key={option}
-                onClick={() => toggleOption(option)}
-                className={`cursor-pointer px-4 py-2 ${
-                  value.includes(option)
-                    ? "bg-primaryGreen text-white hover:text-primaryGreen"
-                    : ""
-                } hover:bg-tertiaryGray`}
-              >
-                {option}
-              </div>
-            ))}
+            {options.map((option, index) => {
+              const isSelected = value.includes(option);
+              const isHighlighted = highlightedIndex === index;
+
+              return (
+                <div
+                  key={option}
+                  ref={(element) => {
+                    optionRefs.current[index] = element;
+                  }}
+                  role="option"
+                  aria-selected={isSelected}
+                  className={`cursor-pointer px-4 py-2 hover:bg-tertiaryGray ${
+                    isSelected
+                      ? "bg-primaryGreen text-white hover:text-primaryGreen"
+                      : isHighlighted
+                        ? "bg-tertiaryGray"
+                        : ""
+                  }`}
+                  onMouseEnter={() => setHighlightedIndex(index)}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleOption(option);
+                  }}
+                >
+                  {option}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
-};
-
-export default DropdownComponent;
+}
